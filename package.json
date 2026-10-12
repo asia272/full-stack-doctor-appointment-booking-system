@@ -10,18 +10,22 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
+    "@getbrevo/brevo": "^6.0.3",
+    "@hookform/resolvers": "^5.9.1",
+    "argon2": "^0.45.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
-    "dotenv": "^18.0.7",
+    "convex": "^1.46.0",
+    "date-fns": "^4.4.0",
     "lucide-react": "^1.55.0",
     "next": "16.4.0",
-    "pg": "^8.23.1",
     "react": "19.3.0",
+    "react-day-picker": "^10.0.2",
     "react-dom": "19.3.0",
+    "react-hook-form": "^7.90.0",
     "shadcn": "^4.21.4",
-    "tw-animate-css": "^1.4.0"
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -31,7 +35,6 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
-    "prisma": "^8.0.0-rc.22",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
