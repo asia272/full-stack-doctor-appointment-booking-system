@@ -202,10 +202,20 @@ export async function patientLoginAction(
     redirect("/");
 }
 
+
 export async function staffLoginAction(
     _previousState: AuthActionState,
     formData: FormData,
 ): Promise<AuthActionState> {
+    const mode = formData.get("mode");
+
+    if (mode !== "admin" && mode !== "doctor") {
+        return {
+            success: false,
+            message: "Please select a valid login mode.",
+        };
+    }
+
     const parsed = loginSchema.safeParse({
         email: formData.get("email"),
         password: formData.get("password"),
@@ -219,10 +229,12 @@ export async function staffLoginAction(
         };
     }
 
+    const allowedRoles = mode === "admin" ? ["ADMIN"] as const : ["DOCTOR"] as const;
+
     let user;
 
     try {
-        user = await loginWithPassword(parsed.data, ["ADMIN", "DOCTOR"]);
+        user = await loginWithPassword(parsed.data, [...allowedRoles]);
     } catch {
         return {
             success: false,
@@ -236,6 +248,7 @@ export async function staffLoginAction(
             : "/doctor/dashboard",
     );
 }
+
 
 export async function logoutAction(): Promise<void> {
     await logout();

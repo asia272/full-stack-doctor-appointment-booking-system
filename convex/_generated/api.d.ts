@@ -9,6 +9,7 @@
  */
 
 import type * as sessions from "../sessions.js";
+import type * as staff from "../staff.js";
 import type * as users from "../users.js";
 
 import type {
@@ -19,6 +20,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   sessions: typeof sessions;
+  staff: typeof staff;
   users: typeof users;
 }>;
 

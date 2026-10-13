@@ -1,3 +1,4 @@
+
 import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
@@ -50,7 +51,7 @@ export function getConvexAdminClient(): ConvexHttpClient {
 
     const client = new ConvexHttpClient(url);
 
-    // Convex admin auth is only used in this server-only module.
+    // Keep the Convex deployment key on the server only.
     // @ts-expect-error Convex internal admin API
     client.setAdminAuth(deployKey);
 
@@ -87,10 +88,12 @@ export async function createSession(userId: string): Promise<void> {
         },
     );
 
+    // Call createSession only from a Server Action or Route Handler.
     await setSessionCookie(token, expiresAt);
 }
 
 export async function getCurrentSessionUser(): Promise<SessionUser | null> {
+    // This function is read-only because it may run during Server Component rendering.
     const cookieStore = await cookies();
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
@@ -112,16 +115,7 @@ export async function getCurrentSessionUser(): Promise<SessionUser | null> {
         session.revokedAt !== undefined ||
         session.expiresAt <= Date.now()
     ) {
-        if (session) {
-            await client.mutation(
-                getInternalMutation(internal.sessions.revoke),
-                {
-                    sessionId: session._id,
-                },
-            );
-        }
-
-        cookieStore.delete(SESSION_COOKIE_NAME);
+        // Do not modify cookies or database records during page rendering.
         return null;
     }
 
@@ -137,14 +131,8 @@ export async function getCurrentSessionUser(): Promise<SessionUser | null> {
         !user.isActive ||
         (user.role === "USER" && user.emailVerified !== true)
     ) {
-        await client.mutation(
-            getInternalMutation(internal.sessions.revoke),
-            {
-                sessionId: session._id,
-            },
-        );
-
-        cookieStore.delete(SESSION_COOKIE_NAME);
+        // Invalid users are denied access; cleanup belongs in a Server Action
+        // or Route Handler, not in this read-only session check.
         return null;
     }
 
@@ -157,6 +145,7 @@ export async function getCurrentSessionUser(): Promise<SessionUser | null> {
 }
 
 export async function destroyCurrentSession(): Promise<void> {
+    // Call this function only from a Server Action or Route Handler.
     const cookieStore = await cookies();
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
@@ -171,7 +160,7 @@ export async function destroyCurrentSession(): Promise<void> {
                 },
             );
 
-            if (session) {
+            if (session && session.revokedAt === undefined) {
                 await client.mutation(
                     getInternalMutation(internal.sessions.revoke),
                     {
@@ -181,6 +170,7 @@ export async function destroyCurrentSession(): Promise<void> {
             }
         }
     } finally {
+        // Cookie deletion is valid in a Server Action or Route Handler.
         cookieStore.delete(SESSION_COOKIE_NAME);
     }
 }
