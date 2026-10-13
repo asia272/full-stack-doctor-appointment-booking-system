@@ -44,7 +44,7 @@ export default defineSchema({
 
         role: userRole,
 
-
+        emailVerified: v.optional(v.boolean()),
         imageStorageId: v.optional(v.id("_storage")),
 
         // Allows an administrator to disable an account.
@@ -160,6 +160,17 @@ export default defineSchema({
         usedAt: v.optional(v.number()),
     })
         .index("by_token_hash", ["tokenHash"])
+        .index("by_user", ["userId"])
+        .index("by_expiration", ["expiresAt"]),
+
+    emailVerificationCodes: defineTable({
+        userId: v.id("users"),
+        codeHash: v.string(),
+        expiresAt: v.number(),
+        attempts: v.number(),
+        createdAt: v.number(),
+        consumedAt: v.optional(v.number()),
+    })
         .index("by_user", ["userId"])
         .index("by_expiration", ["expiresAt"]),
 });

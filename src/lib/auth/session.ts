@@ -1,4 +1,3 @@
-
 import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
@@ -20,10 +19,6 @@ export type SessionUser = {
     role: AppRole;
 };
 
-function hashSessionToken(token: string): string {
-    return createHash("sha256").update(token).digest("hex");
-}
-
 type InternalQuery = FunctionReference<"query">;
 type InternalMutation = FunctionReference<"mutation">;
 
@@ -35,15 +30,13 @@ function getInternalMutation(ref: unknown): InternalMutation {
     return ref as InternalMutation;
 }
 
-/**
- * Server-only Convex client.
- *
- * Never expose CONVEX_DEPLOY_KEY to browser code.
- */
+function hashSessionToken(token: string): string {
+    return createHash("sha256").update(token).digest("hex");
+}
+
 export function getConvexAdminClient(): ConvexHttpClient {
     const url =
-        process.env.CONVEX_URL ??
-        process.env.NEXT_PUBLIC_CONVEX_URL;
+        process.env.CONVEX_URL ?? process.env.NEXT_PUBLIC_CONVEX_URL;
 
     const deployKey = process.env.CONVEX_DEPLOY_KEY;
 
@@ -57,8 +50,7 @@ export function getConvexAdminClient(): ConvexHttpClient {
 
     const client = new ConvexHttpClient(url);
 
-    // Compatibility with the installed Convex declarations.
-    // This does not make internal function calls publicly supported.
+    // Convex admin auth is only used in this server-only module.
     // @ts-expect-error Convex internal admin API
     client.setAdminAuth(deployKey);
 
@@ -80,9 +72,7 @@ async function setSessionCookie(
     });
 }
 
-export async function createSession(
-    userId: string,
-): Promise<void> {
+export async function createSession(userId: string): Promise<void> {
     const client = getConvexAdminClient();
 
     const token = randomBytes(32).toString("base64url");
@@ -142,7 +132,11 @@ export async function getCurrentSessionUser(): Promise<SessionUser | null> {
         },
     );
 
-    if (!user || !user.isActive) {
+    if (
+        !user ||
+        !user.isActive ||
+        (user.role === "USER" && user.emailVerified !== true)
+    ) {
         await client.mutation(
             getInternalMutation(internal.sessions.revoke),
             {
