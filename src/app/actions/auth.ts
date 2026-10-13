@@ -208,17 +208,10 @@ export async function patientLoginAction(
 
 
 export async function staffLoginAction(
-    _previousState: AuthActionState,
+    _prevState: AuthActionState,
     formData: FormData,
 ): Promise<AuthActionState> {
-    const mode = formData.get("mode");
-
-    if (mode !== "admin" && mode !== "doctor") {
-        return {
-            success: false,
-            message: "Please select a valid login mode.",
-        };
-    }
+    const mode = formData.get("mode") === "doctor" ? "doctor" : "admin";
 
     const parsed = loginSchema.safeParse({
         email: formData.get("email"),
@@ -229,103 +222,75 @@ export async function staffLoginAction(
         return {
             success: false,
             message: "Please enter a valid email and password.",
-            fieldErrors: getFieldErrors(parsed.error),
+            fieldErrors: parsed.error.flatten().fieldErrors,
         };
     }
 
     if (mode === "admin") {
         try {
-            const result = await beginAdminLogin(parsed.data);
+            await beginAdminLogin(parsed.data);
 
             return {
                 success: true,
-                message: "A verification code has been sent to your Admin email.",
-                userId: result.userId,
+                message: "Verification code sent to the configured Admin email.",
+                userId: "env-admin",
             };
         } catch (error) {
-            const message = getErrorMessage(error);
-
-            if (message.includes("OTP_COOLDOWN")) {
-                return {
-                    success: false,
-                    message: "Please wait 60 seconds before requesting another code.",
-                };
-            }
-
-            console.error("[auth] Admin login start failed:", error);
-
             return {
                 success: false,
-                message: message.includes("Unable to send the Admin verification code")
-                    ? message
-                    : INVALID_LOGIN_MESSAGE,
+                message:
+                    error instanceof Error
+                        ? error.message
+                        : "Unable to start Admin sign-in.",
             };
         }
     }
 
     try {
-        const user = await loginWithPassword(parsed.data, ["DOCTOR"]);
-
-        redirect(
-            user.role === "DOCTOR"
-                ? "/doctor/dashboard"
-                : "/",
-        );
+        await loginWithPassword(parsed.data, ["DOCTOR"]);
     } catch (error) {
-        // Next.js redirect() throws internally; don't swallow its redirect.
-        if (
-            error &&
-            typeof error === "object" &&
-            "digest" in error &&
-            typeof error.digest === "string" &&
-            error.digest.startsWith("NEXT_REDIRECT")
-        ) {
-            throw error;
-        }
-
         return {
             success: false,
-            message: INVALID_LOGIN_MESSAGE,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Unable to sign in.",
         };
     }
+
+    redirect("/doctor/dashboard");
 }
 
 export async function adminOtpLoginAction(
-    _previousState: AuthActionState,
+    _prevState: AuthActionState,
     formData: FormData,
 ): Promise<AuthActionState> {
-    const email = String(formData.get("email") ?? "")
-        .trim()
-        .toLowerCase();
-
-    const userId = String(formData.get("userId") ?? "").trim();
+    const email = String(formData.get("email") ?? "");
+    const userId = String(formData.get("userId") ?? "");
     const code = String(formData.get("code") ?? "").trim();
 
-    if (!email || !userId || !/^\d{6}$/.test(code)) {
+    if (userId !== "env-admin" || !/^\d{6}$/.test(code)) {
         return {
             success: false,
-            message: "Enter the six-digit verification code.",
+            message: "Enter the valid six-digit verification code.",
         };
     }
 
     try {
         await verifyAdminLogin(userId, email, code);
     } catch (error) {
-        const message = getErrorMessage(error);
-
         return {
             success: false,
             message:
-                message === "Your code has expired. Please request a new code." ||
-                    message === "Too many incorrect attempts. Please request a new code." ||
-                    message.startsWith("The configured Admin email")
-                    ? message
-                    : "Invalid or expired verification code.",
+                error instanceof Error
+                    ? error.message
+                    : "Unable to verify the Admin code.",
         };
     }
 
     redirect("/admin/dashboard");
 }
+
 
 
 

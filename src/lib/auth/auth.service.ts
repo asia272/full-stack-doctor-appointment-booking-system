@@ -1,6 +1,6 @@
 import "server-only";
+import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
 
-import { createHmac, randomInt } from "node:crypto";
 import type { FunctionReference } from "convex/server";
 import { internal } from "../../../convex/_generated/api";
 import { sendVerificationEmail } from "../email/brevo";
@@ -12,6 +12,10 @@ import {
 } from "./passwords";
 
 import {
+    createAdminOtpChallenge,
+    createAdminSession,
+    clearAdminOtpChallenge,
+    verifyAdminOtpChallenge,
     createSession,
     destroyCurrentSession,
     getConvexAdminClient,
@@ -318,62 +322,54 @@ export async function loginWithPassword(
 
 
 
+function adminPasswordMatches(
+    suppliedPassword: string,
+    configuredPassword: string,
+): boolean {
+    const supplied = Buffer.from(suppliedPassword);
+    const configured = Buffer.from(configuredPassword);
+
+    return (
+        supplied.length === configured.length &&
+        timingSafeEqual(supplied, configured)
+    );
+}
+
 export async function beginAdminLogin(
     input: AdminLoginStartInput,
 ): Promise<{ userId: string }> {
     const email = normalizeEmail(input.email);
     const configuredEmail = normalizeEmail(process.env.ADMIN_EMAIL ?? "");
+    const configuredPassword = process.env.ADMIN_PASSWORD;
 
     if (
         !configuredEmail ||
         isInvalidEmail(configuredEmail) ||
+        !configuredPassword ||
+        configuredPassword.length < 12 ||
         email !== configuredEmail ||
         !input.password ||
-        input.password.length > 128
-    ) {
-        throw new Error("Invalid email or password.");
-    }
-
-    const client = getConvexAdminClient();
-
-    const admin = await client.query(
-        getInternalQuery(internal.staff.getAdminForLogin),
-        {},
-    );
-
-    const passwordMatches = await verifyPassword(
-        admin?.passwordHash ?? "",
-        input.password,
-    );
-
-    if (
-        !admin ||
-        !passwordMatches ||
-        !admin.isActive ||
-        admin.role !== "ADMIN" ||
-        admin.emailVerified !== true
+        input.password.length > 128 ||
+        !adminPasswordMatches(input.password, configuredPassword)
     ) {
         throw new Error("Invalid email or password.");
     }
 
     const code = createOtp();
-    const codeHash = hashVerificationCode(admin._id, code);
 
-    await client.mutation(
-        getInternalMutation(internal.staff.createAdminLoginOtp),
-        {
-            userId: admin._id,
-            codeHash,
-        },
-    );
+    // The OTP challenge is signed and stored in an HttpOnly cookie.
+    // No Admin user or OTP record is created in Convex.
+    await createAdminOtpChallenge(configuredEmail, code);
 
     try {
         await sendVerificationEmail(
             configuredEmail,
-            admin.fullName,
+            "Administrator",
             code,
         );
     } catch (error) {
+        await clearAdminOtpChallenge();
+
         console.error("[auth] Admin OTP delivery failed:", error);
 
         throw new Error(
@@ -381,11 +377,12 @@ export async function beginAdminLogin(
         );
     }
 
-    return { userId: admin._id };
+    // Compatibility with the existing form state. This is not a database ID.
+    return { userId: "env-admin" };
 }
 
 export async function verifyAdminLogin(
-    userId: string,
+    _userId: string,
     rawEmail: string,
     code: string,
 ): Promise<SessionUser> {
@@ -401,56 +398,35 @@ export async function verifyAdminLogin(
         throw new Error("Invalid or expired verification code.");
     }
 
-    const client = getConvexAdminClient();
-
-    const result = await client.mutation(
-        getInternalMutation(internal.staff.verifyAdminLoginOtp),
-        {
-            userId: userId as never,
-            email: configuredEmail,
-            codeHash: hashVerificationCode(userId, code),
-        },
-    );
+    const result = await verifyAdminOtpChallenge(configuredEmail, code);
 
     if (!result.verified) {
         if (result.reason === "TOO_MANY_ATTEMPTS") {
             throw new Error(
-                "Too many incorrect attempts. Please request a new code.",
+                "Too many incorrect attempts. Start the Admin sign-in process again.",
             );
         }
 
         if (result.reason === "EXPIRED") {
-            throw new Error("Your code has expired. Please request a new code.");
-        }
-
-        if (result.reason === "EMAIL_IN_USE") {
             throw new Error(
-                "The configured Admin email belongs to another account. Please check ADMIN_EMAIL.",
+                "Your verification code has expired. Start the Admin sign-in process again.",
             );
         }
 
         throw new Error("Invalid or expired verification code.");
     }
 
-    const user = await client.query(
-        getInternalQuery(internal.users.getById),
-        { userId: userId as never },
-    );
+    // Create the Admin session only after successful OTP verification.
+    await createAdminSession(configuredEmail);
 
-    if (
-        !user ||
-        user.role !== "ADMIN" ||
-        !user.isActive ||
-        user.emailVerified !== true
-    ) {
-        throw new Error("Unable to verify the administrator account.");
-    }
-
-    // The Admin session is created only after successful OTP verification.
-    await createSession(user._id);
-
-    return toSessionUser(user);
+    return {
+        id: "env-admin",
+        fullName: "Administrator",
+        email: configuredEmail,
+        role: "ADMIN",
+    };
 }
+
 
 export async function logout(): Promise<void> {
     await destroyCurrentSession();
