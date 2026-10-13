@@ -8,16 +8,19 @@ import {
 } from "@/lib/validations/auth.schema";
 
 import {
+    beginAdminLogin,
     loginWithPassword,
     logout,
     registerPatient,
     resendVerificationCode,
+    verifyAdminLogin,
     verifyPatientEmail,
 } from "@/lib/auth/auth.service";
 
 export type AuthActionState = {
     success: boolean;
     message: string;
+    userId?: string;
     fieldErrors?: Record<string, string[] | undefined>;
 };
 
@@ -203,6 +206,7 @@ export async function patientLoginAction(
 }
 
 
+
 export async function staffLoginAction(
     _previousState: AuthActionState,
     formData: FormData,
@@ -229,25 +233,100 @@ export async function staffLoginAction(
         };
     }
 
-    const allowedRoles = mode === "admin" ? ["ADMIN"] as const : ["DOCTOR"] as const;
+    if (mode === "admin") {
+        try {
+            const result = await beginAdminLogin(parsed.data);
 
-    let user;
+            return {
+                success: true,
+                message: "A verification code has been sent to your Admin email.",
+                userId: result.userId,
+            };
+        } catch (error) {
+            const message = getErrorMessage(error);
+
+            if (message.includes("OTP_COOLDOWN")) {
+                return {
+                    success: false,
+                    message: "Please wait 60 seconds before requesting another code.",
+                };
+            }
+
+            console.error("[auth] Admin login start failed:", error);
+
+            return {
+                success: false,
+                message: message.includes("Unable to send the Admin verification code")
+                    ? message
+                    : INVALID_LOGIN_MESSAGE,
+            };
+        }
+    }
 
     try {
-        user = await loginWithPassword(parsed.data, [...allowedRoles]);
-    } catch {
+        const user = await loginWithPassword(parsed.data, ["DOCTOR"]);
+
+        redirect(
+            user.role === "DOCTOR"
+                ? "/doctor/dashboard"
+                : "/",
+        );
+    } catch (error) {
+        // Next.js redirect() throws internally; don't swallow its redirect.
+        if (
+            error &&
+            typeof error === "object" &&
+            "digest" in error &&
+            typeof error.digest === "string" &&
+            error.digest.startsWith("NEXT_REDIRECT")
+        ) {
+            throw error;
+        }
+
         return {
             success: false,
             message: INVALID_LOGIN_MESSAGE,
         };
     }
-
-    redirect(
-        user.role === "ADMIN"
-            ? "/admin/dashboard"
-            : "/doctor/dashboard",
-    );
 }
+
+export async function adminOtpLoginAction(
+    _previousState: AuthActionState,
+    formData: FormData,
+): Promise<AuthActionState> {
+    const email = String(formData.get("email") ?? "")
+        .trim()
+        .toLowerCase();
+
+    const userId = String(formData.get("userId") ?? "").trim();
+    const code = String(formData.get("code") ?? "").trim();
+
+    if (!email || !userId || !/^\d{6}$/.test(code)) {
+        return {
+            success: false,
+            message: "Enter the six-digit verification code.",
+        };
+    }
+
+    try {
+        await verifyAdminLogin(userId, email, code);
+    } catch (error) {
+        const message = getErrorMessage(error);
+
+        return {
+            success: false,
+            message:
+                message === "Your code has expired. Please request a new code." ||
+                    message === "Too many incorrect attempts. Please request a new code." ||
+                    message.startsWith("The configured Admin email")
+                    ? message
+                    : "Invalid or expired verification code.",
+        };
+    }
+
+    redirect("/admin/dashboard");
+}
+
 
 
 export async function logoutAction(): Promise<void> {

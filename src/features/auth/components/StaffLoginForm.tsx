@@ -1,11 +1,10 @@
 
 "use client";
 
-import { useActionState, useState } from "react";
-import Link from "next/link";
-import { Eye, EyeOff, ShieldCheck, Stethoscope } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
 
 import {
+    adminOtpLoginAction,
     staffLoginAction,
     type AuthActionState,
 } from "@/app/actions/auth";
@@ -15,95 +14,96 @@ const initialState: AuthActionState = {
     message: "",
 };
 
-type LoginMode = "admin" | "doctor";
-
 export default function StaffLoginForm() {
-    const [mode, setMode] = useState<LoginMode>("admin");
-    const [showPassword, setShowPassword] = useState(false);
+    const [mode, setMode] = useState<"admin" | "doctor">("admin");
+    const [email, setEmail] = useState("");
+    const [userId, setUserId] = useState("");
+    const [otpStep, setOtpStep] = useState(false);
 
-    const [state, formAction, isPending] = useActionState(
+    const [loginState, loginAction, loginPending] = useActionState(
         staffLoginAction,
         initialState,
     );
 
-    const isAdmin = mode === "admin";
+    const [otpState, otpAction, otpPending] = useActionState(
+        adminOtpLoginAction,
+        initialState,
+    );
+
+    useEffect(() => {
+        if (loginState.success && loginState.userId) {
+            setUserId(loginState.userId);
+            setOtpStep(true);
+        }
+    }, [loginState]);
+
+    function changeMode(nextMode: "admin" | "doctor") {
+        setMode(nextMode);
+        setOtpStep(false);
+        setUserId("");
+    }
+
+    const message = otpStep ? otpState.message : loginState.message;
+    const success = otpStep ? otpState.success : loginState.success;
+    const pending = otpStep ? otpPending : loginPending;
 
     return (
-        <main className="flex min-h-screen items-center justify-center bg-[#f9f9f9] px-4 py-12 text-[#111111]">
-            <section className="w-full max-w-md">
-                <div className="mb-8 text-center">
-                    <Link
-                        href="/"
-                        className="text-sm font-medium text-[#c53fad] transition hover:opacity-80"
-                    >
-                        ← Back to home
-                    </Link>
-
-                    <h1 className="mt-6 text-3xl font-semibold tracking-tight">
-                        Staff sign in
+        <main className="mx-auto w-full max-w-md px-5 py-10">
+            <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+                <header className="mb-6">
+                    <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+                        {otpStep
+                            ? "Verify your email"
+                            : "Staff sign in"}
                     </h1>
 
                     <p className="mt-2 text-sm leading-6 text-gray-600">
-                        Sign in to access your{" "}
-                        {isAdmin ? "administration" : "doctor"} dashboard.
+                        {otpStep
+                            ? "Enter the six-digit code sent to your configured Admin email."
+                            : "Sign in to access your staff dashboard."}
                     </p>
-                </div>
+                </header>
 
-                <div className="rounded-2xl border border-[#e0dae2] bg-white p-6 shadow-sm sm:p-8">
-                    <div
-                        className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-[#f5f1f6] p-1"
-                        aria-label="Choose login mode"
-                    >
+                {!otpStep && (
+                    <div className="mb-6 grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
                         <button
                             type="button"
-                            onClick={() => setMode("admin")}
-                            aria-pressed={isAdmin}
-                            className={`flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition ${isAdmin
-                                    ? "bg-white text-[#a52f91] shadow-sm"
-                                    : "text-gray-600 hover:text-[#a52f91]"
+                            onClick={() => changeMode("admin")}
+                            aria-pressed={mode === "admin"}
+                            className={`rounded-md px-3 py-2 text-sm font-medium transition ${mode === "admin"
+                                    ? "bg-white text-gray-900 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
-                            <ShieldCheck size={17} />
                             Admin
                         </button>
 
                         <button
                             type="button"
-                            onClick={() => setMode("doctor")}
-                            aria-pressed={!isAdmin}
-                            className={`flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition ${!isAdmin
-                                    ? "bg-white text-[#a52f91] shadow-sm"
-                                    : "text-gray-600 hover:text-[#a52f91]"
+                            onClick={() => changeMode("doctor")}
+                            aria-pressed={mode === "doctor"}
+                            className={`rounded-md px-3 py-2 text-sm font-medium transition ${mode === "doctor"
+                                    ? "bg-white text-gray-900 shadow-sm"
+                                    : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
-                            <Stethoscope size={17} />
                             Doctor
                         </button>
                     </div>
+                )}
 
-                    <div className="mb-6">
-                        <h2 className="text-lg font-semibold">
-                            {isAdmin ? "Admin login" : "Doctor login"}
-                        </h2>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                            {isAdmin
-                                ? "Manage doctors, appointments, and the platform."
-                                : "Access your doctor account and appointments."}
-                        </p>
-                    </div>
-
-                    <form action={formAction} className="space-y-5">
+                {!otpStep ? (
+                    <form action={loginAction} className="space-y-5">
                         <input
                             type="hidden"
                             name="mode"
                             value={mode}
                         />
 
-                        <div className="space-y-2">
+                        <div>
                             <label
                                 htmlFor="staff-email"
-                                className="block text-sm font-medium"
+                                className="mb-1.5 block text-sm font-medium text-gray-800"
                             >
                                 Email address
                             </label>
@@ -113,94 +113,127 @@ export default function StaffLoginForm() {
                                 name="email"
                                 type="email"
                                 autoComplete="username"
-                                placeholder="you@example.com"
                                 required
                                 maxLength={254}
-                                className="h-11 w-full rounded-lg border border-[#e0dae2] bg-white px-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#c53fad]"
+                                value={email}
+                                onChange={(event) => setEmail(event.target.value)}
+                                placeholder="you@example.com"
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-500"
                             />
-
-                            {state.fieldErrors?.email?.[0] && (
-                                <p className="text-sm text-red-600">
-                                    {state.fieldErrors.email[0]}
-                                </p>
-                            )}
                         </div>
 
-                        <div className="space-y-2">
+                        <div>
                             <label
                                 htmlFor="staff-password"
-                                className="block text-sm font-medium"
+                                className="mb-1.5 block text-sm font-medium text-gray-800"
                             >
                                 Password
                             </label>
 
-                            <div className="relative">
-                                <input
-                                    id="staff-password"
-                                    name="password"
-                                    type={showPassword ? "text" : "password"}
-                                    autoComplete="current-password"
-                                    placeholder="Enter your password"
-                                    required
-                                    maxLength={128}
-                                    className="h-11 w-full rounded-lg border border-[#e0dae2] bg-white px-3 pr-12 text-sm outline-none transition placeholder:text-gray-400 focus:border-[#c53fad]"
-                                />
-
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setShowPassword((visible) => !visible)
-                                    }
-                                    aria-label={
-                                        showPassword
-                                            ? "Hide password"
-                                            : "Show password"
-                                    }
-                                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-gray-500 transition hover:text-[#a52f91]"
-                                >
-                                    {showPassword ? (
-                                        <EyeOff size={18} />
-                                    ) : (
-                                        <Eye size={18} />
-                                    )}
-                                </button>
-                            </div>
-
-                            {state.fieldErrors?.password?.[0] && (
-                                <p className="text-sm text-red-600">
-                                    {state.fieldErrors.password[0]}
-                                </p>
-                            )}
+                            <input
+                                id="staff-password"
+                                name="password"
+                                type="password"
+                                autoComplete="current-password"
+                                required
+                                maxLength={128}
+                                placeholder="Enter your password"
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-500"
+                            />
                         </div>
 
-                        {state.message && (
+                        {loginState.message && (
                             <p
-                                role="alert"
-                                aria-live="polite"
-                                className={`rounded-lg px-3 py-2 text-sm ${state.success
-                                        ? "bg-green-50 text-green-700"
-                                        : "bg-red-50 text-red-700"
-                                    }`}
+                                role="status"
+                                className="text-sm text-red-600"
                             >
-                                {state.message}
+                                {loginState.message}
                             </p>
                         )}
 
                         <button
                             type="submit"
-                            disabled={isPending}
-                            className="flex h-11 w-full items-center justify-center rounded-lg bg-[#c53fad] px-4 text-sm font-semibold text-white transition hover:bg-[#ad3297] disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={loginPending}
+                            className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {isPending
-                                ? "Signing in..."
-                                : `Sign in as ${isAdmin ? "Admin" : "Doctor"}`}
+                            {loginPending
+                                ? "Please wait..."
+                                : mode === "admin"
+                                    ? "Continue to email verification"
+                                    : "Sign in as Doctor"}
                         </button>
                     </form>
-                </div>
+                ) : (
+                    <form action={otpAction} className="space-y-5">
+                        <input
+                            type="hidden"
+                            name="email"
+                            value={email.trim().toLowerCase()}
+                        />
+
+                        <input
+                            type="hidden"
+                            name="userId"
+                            value={userId}
+                        />
+
+                        <div>
+                            <label
+                                htmlFor="admin-otp"
+                                className="mb-1.5 block text-sm font-medium text-gray-800"
+                            >
+                                Six-digit verification code
+                            </label>
+
+                            <input
+                                id="admin-otp"
+                                name="code"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                pattern="[0-9]{6}"
+                                minLength={6}
+                                maxLength={6}
+                                required
+                                autoFocus
+                                placeholder="000000"
+                                className="w-full rounded-lg border border-gray-300 px-3 py-3 text-center text-lg tracking-[0.35em] text-gray-900 outline-none transition focus:border-gray-500"
+                            />
+                        </div>
+
+                        {message && (
+                            <p
+                                role="status"
+                                className={`text-sm ${success ? "text-green-700" : "text-red-600"
+                                    }`}
+                            >
+                                {message}
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={pending}
+                            className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {pending ? "Verifying..." : "Verify and sign in"}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setOtpStep(false);
+                                setUserId("");
+                            }}
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                        >
+                            Back to sign in
+                        </button>
+                    </form>
+                )}
 
                 <p className="mt-6 text-center text-xs leading-5 text-gray-500">
-                    Authorized staff only. Your account must be created by an
-                    administrator or through the initial admin setup process.
+                    Authorized staff only. Admin login requires email verification.
                 </p>
             </section>
         </main>

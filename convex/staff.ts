@@ -1,6 +1,5 @@
-
 import { ConvexError, v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 
 function normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
@@ -28,7 +27,6 @@ function validatePasswordHash(passwordHash: string): void {
         throw new ConvexError("INVALID_PASSWORD_HASH");
     }
 }
-
 
 /**
  * Creates a doctor account and its professional profile atomically.
@@ -127,45 +125,126 @@ export const createDoctor = internalMutation({
             updatedAt: now,
         });
 
-        return {
-            userId,
-            doctorId,
-        };
+        return { userId, doctorId };
     },
 });
 
-export const verifyFirstAdminOtp = internalMutation({
-    args: {
-        userId: v.id("users"),
-        email: v.string(),
-        codeHash: v.string(),
-    },
-    handler: async (ctx, args) => {
-        const email = normalizeEmail(args.email);
-        const now = Date.now();
-
-        const user = await ctx.db.get(args.userId);
-
-        if (
-            !user ||
-            user.role !== "USER" ||
-            user.emailVerified === true ||
-            !user.isActive ||
-            normalizeEmail(user.email) !== email
-        ) {
-            return { success: false as const, reason: "INVALID_CODE" };
-        }
-
+/**
+ * Returns the sole administrator.
+ * This implementation deliberately supports one administrator account.
+ */
+export const getAdminForLogin = internalQuery({
+    args: {},
+    handler: async (ctx) => {
         const admins = await ctx.db
             .query("users")
             .withIndex("by_role", (q) => q.eq("role", "ADMIN"))
             .collect();
 
-        if (admins.length > 0) {
-            return {
-                success: false as const,
-                reason: "ADMIN_ALREADY_EXISTS",
-            };
+        if (admins.length !== 1) {
+            return null;
+        }
+
+        return admins[0];
+    },
+});
+
+/**
+ * Creates an OTP for an existing, active, verified administrator.
+ * OTPs are hashed by the server before reaching this mutation.
+ */
+export const createAdminLoginOtp = internalMutation({
+    args: {
+        userId: v.id("users"),
+        codeHash: v.string(),
+    },
+
+    handler: async (ctx, args) => {
+        if (!/^[a-f0-9]{64}$/i.test(args.codeHash)) {
+            throw new ConvexError("INVALID_CODE_HASH");
+        }
+
+        const user = await ctx.db.get(args.userId);
+
+        if (
+            !user ||
+            user.role !== "ADMIN" ||
+            !user.isActive ||
+            user.emailVerified !== true
+        ) {
+            throw new ConvexError("INVALID_ADMIN");
+        }
+
+        const now = Date.now();
+
+        const codes = await ctx.db
+            .query("emailVerificationCodes")
+            .withIndex("by_user", (q) => q.eq("userId", args.userId))
+            .collect();
+
+        const latest = codes.reduce<
+            (typeof codes)[number] | null
+        >((current, item) => {
+            return !current || item.createdAt > current.createdAt
+                ? item
+                : current;
+        }, null);
+
+        if (latest && now - latest.createdAt < 60_000) {
+            throw new ConvexError("OTP_COOLDOWN");
+        }
+
+        // Expire any outstanding codes before creating a new one.
+        for (const item of codes) {
+            if (item.consumedAt === undefined) {
+                await ctx.db.patch(item._id, { consumedAt: now });
+            }
+        }
+
+        await ctx.db.insert("emailVerificationCodes", {
+            userId: args.userId,
+            codeHash: args.codeHash,
+            expiresAt: now + 10 * 60_000,
+            attempts: 0,
+            createdAt: now,
+        });
+
+        return { success: true as const };
+    },
+});
+
+/**
+ * Verifies and consumes an administrator login OTP.
+ * On success, synchronizes the database email with the configured email.
+ */
+export const verifyAdminLoginOtp = internalMutation({
+    args: {
+        userId: v.id("users"),
+        email: v.string(),
+        codeHash: v.string(),
+    },
+
+    handler: async (ctx, args) => {
+        const email = normalizeEmail(args.email);
+        const now = Date.now();
+
+        if (
+            email.length > 254 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+            !/^[a-f0-9]{64}$/i.test(args.codeHash)
+        ) {
+            return { verified: false as const, reason: "INVALID_CODE" as const };
+        }
+
+        const user = await ctx.db.get(args.userId);
+
+        if (
+            !user ||
+            user.role !== "ADMIN" ||
+            !user.isActive ||
+            user.emailVerified !== true
+        ) {
+            return { verified: false as const, reason: "INVALID_CODE" as const };
         }
 
         const codes = await ctx.db
@@ -182,18 +261,18 @@ export const verifyFirstAdminOtp = internalMutation({
         }, null);
 
         if (!otp || otp.consumedAt !== undefined) {
-            return { success: false as const, reason: "INVALID_CODE" };
+            return { verified: false as const, reason: "INVALID_CODE" as const };
         }
 
         if (otp.expiresAt <= now) {
             await ctx.db.patch(otp._id, { consumedAt: now });
-            return { success: false as const, reason: "EXPIRED" };
+            return { verified: false as const, reason: "EXPIRED" as const };
         }
 
         if (otp.attempts >= 5) {
             return {
-                success: false as const,
-                reason: "TOO_MANY_ATTEMPTS",
+                verified: false as const,
+                reason: "TOO_MANY_ATTEMPTS" as const,
             };
         }
 
@@ -206,23 +285,40 @@ export const verifyFirstAdminOtp = internalMutation({
             });
 
             return {
-                success: false as const,
-                reason:
-                    attempts >= 5
-                        ? "TOO_MANY_ATTEMPTS"
-                        : "INVALID_CODE",
+                verified: false as const,
+                reason: attempts >= 5
+                    ? "TOO_MANY_ATTEMPTS" as const
+                    : "INVALID_CODE" as const,
             };
         }
 
-        // Consume the code and promote the user in the same transaction.
+        // Do not overwrite another user's email.
+        const emailOwner = await ctx.db
+            .query("users")
+            .withIndex("by_email", (q) => q.eq("email", email))
+            .unique();
+
+        if (emailOwner && emailOwner._id !== user._id) {
+            await ctx.db.patch(otp._id, { consumedAt: now });
+
+            return {
+                verified: false as const,
+                reason: "EMAIL_IN_USE" as const,
+            };
+        }
+
         await ctx.db.patch(otp._id, { consumedAt: now });
 
-        await ctx.db.patch(user._id, {
-            role: "ADMIN",
-            emailVerified: true,
-            updatedAt: now,
-        });
+        if (normalizeEmail(user.email) !== email) {
+            await ctx.db.patch(user._id, {
+                email,
+                updatedAt: now,
+            });
+        }
 
-        return { success: true as const, reason: "VERIFIED" };
+        return {
+            verified: true as const,
+            reason: "VERIFIED" as const,
+        };
     },
 });
