@@ -1,22 +1,45 @@
-import { getCurrentSessionUser } from "@/lib/auth/session"; // <- your session helper
+import { FunctionReference } from "convex/server";
+import { Id } from "../../../convex/_generated/dataModel";
+import { internal } from "../../../convex/_generated/api";
 
-import { NavbarClient } from "@/app/actions/navbar-client";
+import {
+    getConvexAdminClient,
+    getCurrentSessionUser,
+} from "@/lib/auth/session";
+
+import { NavbarClient } from "@/components/layout/navbar-client";
+
+const internalQuery = (ref: unknown) =>
+    ref as FunctionReference<"query">;
 
 export async function Navbar() {
-    const user = await getCurrentSessionUser();
+    const sessionUser = await getCurrentSessionUser();
 
-    // Pass only the safe fields to the client, never the password hash.
+    if (!sessionUser) {
+        return <NavbarClient user={null} />;
+    }
+
+    const convex = getConvexAdminClient();
+
+    const profile = await convex.query(
+        internalQuery(internal.users.getNavbarProfile),
+        {
+            userId: sessionUser.id as Id<"users">,
+        },
+    );
+
+    if (!profile) {
+        return <NavbarClient user={null} />;
+    }
+
     return (
         <NavbarClient
-            user={
-                user
-                    ? {
-                        fullName: user.fullName,
-                        email: user.email,
-                        role: user.role,
-                    }
-                    : null
-            }
+            user={{
+                fullName: profile.fullName,
+                email: profile.email,
+                role: profile.role,
+                imageUrl: profile.imageUrl,
+            }}
         />
     );
 }

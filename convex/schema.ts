@@ -45,6 +45,8 @@ export default defineSchema({
         role: userRole,
         emailVerified: v.optional(v.boolean()),
 
+        // Shared by patient and doctor accounts.
+        imageStorageId: v.optional(v.id("_storage")),
         // Allows an administrator to disable an account.
         isActive: v.boolean(),
 
@@ -189,7 +191,6 @@ export default defineSchema({
                 v.literal("PREFER_NOT_TO_SAY"),
             ),
         ),
-        imageStorageId: v.optional(v.id("_storage")),
         createdAt: v.number(),
         updatedAt: v.number(),
     }).index("by_user", ["userId"]),

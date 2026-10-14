@@ -47,6 +47,7 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
                     {/* Desktop links */}
                     <ul className="hidden items-center gap-10 md:flex">
                         {NAV_LINKS.map((link) => {
+
                             const active = isActive(pathname, link.href);
                             return (
                                 <li key={link.href}>

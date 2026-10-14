@@ -281,3 +281,27 @@ export const deleteUnverifiedPatient = internalMutation({
         return { deleted: true };
     },
 });
+export const getNavbarProfile = internalQuery({
+    args: {
+        userId: v.id("users"),
+    },
+
+    handler: async (ctx, args) => {
+        const user = await ctx.db.get(args.userId);
+
+        if (!user || !user.isActive) {
+            return null;
+        }
+
+        const imageUrl = user.imageStorageId
+            ? await ctx.storage.getUrl(user.imageStorageId)
+            : null;
+
+        return {
+            fullName: user.fullName,
+            email: user.email,
+            role: user.role,
+            imageUrl,
+        };
+    },
+});
