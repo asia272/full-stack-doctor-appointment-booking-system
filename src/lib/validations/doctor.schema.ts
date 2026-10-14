@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 const emailSchema = z
@@ -75,6 +74,9 @@ export const doctorCreateSchema = z.object({
         .max(300, "Address must not exceed 300 characters."),
 
     experienceYears: optionalExperience,
+
+    // NEW: optional Convex storage ID of the uploaded profile photo.
+    imageStorageId: z.string().min(1).optional(),
 });
 
 export type DoctorCreateInput = z.infer<typeof doctorCreateSchema>;

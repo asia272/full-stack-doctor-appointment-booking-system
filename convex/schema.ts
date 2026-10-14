@@ -68,13 +68,10 @@ export default defineSchema({
 
         specialty: v.string(),
         degree: v.string(),
+        experienceYears: v.optional(v.number()),
         about: v.string(),
-
         consultationFee: v.number(),
         address: v.string(),
-
-        // Optional professional details.
-        experienceYears: v.optional(v.number()),
 
         // Inactive doctors should not accept new bookings.
         isActive: v.boolean(),

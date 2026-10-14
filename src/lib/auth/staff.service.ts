@@ -1,4 +1,3 @@
-
 import "server-only";
 
 import type { FunctionReference } from "convex/server";
@@ -38,6 +37,10 @@ export async function createDoctorAccount(
                 address: input.address,
                 ...(input.experienceYears !== undefined
                     ? { experienceYears: input.experienceYears }
+                    : {}),
+                // NEW: save the profile photo reference when one was uploaded.
+                ...(input.imageStorageId
+                    ? { imageStorageId: input.imageStorageId }
                     : {}),
             },
         );

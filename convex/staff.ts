@@ -1,5 +1,8 @@
 import { ConvexError, v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery, mutation } from "./_generated/server";
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 function normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
@@ -43,6 +46,7 @@ export const createDoctor = internalMutation({
         consultationFee: v.number(),
         address: v.string(),
         experienceYears: v.optional(v.number()),
+        imageStorageId: v.optional(v.id("_storage")),
     },
 
     handler: async (ctx, args) => {
@@ -52,7 +56,7 @@ export const createDoctor = internalMutation({
         const degree = args.degree.trim();
         const about = args.about.trim();
         const address = args.address.trim();
-        const { consultationFee, experienceYears } = args;
+        const { consultationFee, experienceYears, imageStorageId } = args;
 
         validateIdentity(fullName, email);
         validatePasswordHash(args.passwordHash);
@@ -90,6 +94,18 @@ export const createDoctor = internalMutation({
             throw new ConvexError("INVALID_ADDRESS");
         }
 
+        if (imageStorageId) {
+            const file = await ctx.db.system.get(imageStorageId);
+
+            if (
+                !file ||
+                !ALLOWED_IMAGE_TYPES.includes(file.contentType ?? "") ||
+                file.size > MAX_IMAGE_BYTES
+            ) {
+                throw new ConvexError("INVALID_IMAGE");
+            }
+        }
+
         const existingUser = await ctx.db
             .query("users")
             .withIndex("by_email", (q) => q.eq("email", email))
@@ -107,6 +123,7 @@ export const createDoctor = internalMutation({
             passwordHash: args.passwordHash,
             role: "DOCTOR",
             emailVerified: true,
+            ...(imageStorageId ? { imageStorageId } : {}),
             isActive: true,
             createdAt: now,
             updatedAt: now,
@@ -126,6 +143,68 @@ export const createDoctor = internalMutation({
         });
 
         return { userId, doctorId };
+    },
+});
+
+/**
+ * Lists doctors for the admin panel, with account details
+ * and a resolved image URL. Bounded to 200 rows on purpose.
+ */
+export const listDoctorsForAdmin = internalQuery({
+    args: {},
+    handler: async (ctx) => {
+        const doctors = await ctx.db.query("doctors").order("desc").take(200);
+
+        const rows = await Promise.all(
+            doctors.map(async (doctor) => {
+                const user = await ctx.db.get(doctor.userId);
+                if (!user) return null;
+
+                const imageUrl = user.imageStorageId
+                    ? await ctx.storage.getUrl(user.imageStorageId)
+                    : null;
+
+                return {
+                    id: doctor._id as string,
+                    fullName: user.fullName,
+                    email: user.email,
+                    specialty: doctor.specialty,
+                    degree: doctor.degree,
+                    experienceYears: doctor.experienceYears ?? null,
+                    consultationFee: doctor.consultationFee,
+                    isActive: doctor.isActive,
+                    imageUrl,
+                };
+            }),
+        );
+
+        return rows.filter(
+            (row): row is NonNullable<typeof row> => row !== null,
+        );
+    },
+});
+
+/**
+ * Toggles whether a doctor accepts new bookings.
+ * Only doctors.isActive changes. users.isActive (login access) is untouched.
+ */
+export const setDoctorAvailability = internalMutation({
+    args: {
+        doctorId: v.id("doctors"),
+        isActive: v.boolean(),
+    },
+    handler: async (ctx, args) => {
+        const doctor = await ctx.db.get(args.doctorId);
+        if (!doctor) throw new ConvexError("DOCTOR_NOT_FOUND");
+
+        if (doctor.isActive !== args.isActive) {
+            await ctx.db.patch(args.doctorId, {
+                isActive: args.isActive,
+                updatedAt: Date.now(),
+            });
+        }
+
+        return { isActive: args.isActive };
     },
 });
 
@@ -320,5 +399,13 @@ export const verifyAdminLoginOtp = internalMutation({
             verified: true as const,
             reason: "VERIFIED" as const,
         };
+    },
+});
+
+export const generateUploadUrl = mutation({
+    args: {},
+    handler: async (ctx) => {
+        // Add your existing admin authorization check here.
+        return await ctx.storage.generateUploadUrl();
     },
 });
