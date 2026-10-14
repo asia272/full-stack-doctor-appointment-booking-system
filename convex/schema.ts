@@ -43,9 +43,7 @@ export default defineSchema({
         passwordHash: v.string(),
 
         role: userRole,
-
         emailVerified: v.optional(v.boolean()),
-        imageStorageId: v.optional(v.id("_storage")),
 
         // Allows an administrator to disable an account.
         isActive: v.boolean(),
@@ -173,4 +171,28 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_expiration", ["expiresAt"]),
+
+
+
+
+
+    patients: defineTable({
+        userId: v.id("users"),
+        phoneNumber: v.optional(v.string()),
+        address: v.optional(v.string()),
+        dateOfBirth: v.optional(v.string()),
+        gender: v.optional(
+            v.union(
+                v.literal("MALE"),
+                v.literal("FEMALE"),
+                v.literal("OTHER"),
+                v.literal("PREFER_NOT_TO_SAY"),
+            ),
+        ),
+        imageStorageId: v.optional(v.id("_storage")),
+        createdAt: v.number(),
+        updatedAt: v.number(),
+    }).index("by_user", ["userId"]),
+
+
 });

@@ -147,8 +147,45 @@ export async function registerPatient(
         { email },
     );
 
+
     if (existingUser) {
-        throw new Error("An account with this email already exists.");
+        if (
+            existingUser.role !== "USER" ||
+            !existingUser.isActive
+        ) {
+            throw new Error("Unable to register with this email.");
+        }
+
+        if (existingUser.emailVerified === true) {
+            throw new Error(
+                "An account with this email already exists. Please sign in.",
+            );
+        }
+
+        const passwordMatches = await verifyPassword(
+            existingUser.passwordHash,
+            input.password,
+        );
+
+        if (!passwordMatches) {
+            throw new Error(
+                "An unverified account already exists. Please switch to Sign In and use your original password.",
+            );
+        }
+
+        try {
+            await issueVerificationCode(
+                existingUser._id,
+                existingUser.email,
+                existingUser.fullName,
+            );
+        } catch (error) {
+            if (!getErrorMessage(error).includes("OTP_COOLDOWN")) {
+                throw error;
+            }
+        }
+
+        return { email: existingUser.email };
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -424,6 +461,70 @@ export async function verifyAdminLogin(
         fullName: "Administrator",
         email: configuredEmail,
         role: "ADMIN",
+    };
+}
+
+export async function loginPatient(
+    input: LoginInput,
+): Promise<{ verified: boolean; email: string }> {
+    const email = normalizeEmail(input.email);
+
+    if (
+        isInvalidEmail(email) ||
+        !input.password ||
+        input.password.length > 128
+    ) {
+        throw new Error("Invalid email or password.");
+    }
+
+    const client = getConvexAdminClient();
+
+    const user = await client.query(
+        getInternalQuery(internal.users.getByEmail),
+        { email },
+    );
+
+    const passwordMatches = await verifyPassword(
+        user?.passwordHash ?? "",
+        input.password,
+    );
+
+    // Use the same generic error for invalid credentials and unavailable accounts.
+    if (
+        !user ||
+        !passwordMatches ||
+        !user.isActive ||
+        user.role !== "USER"
+    ) {
+        throw new Error("Invalid email or password.");
+    }
+
+    // A valid password is not enough to create a session.
+    if (user.emailVerified !== true) {
+        try {
+            await issueVerificationCode(
+                user._id,
+                user.email,
+                user.fullName,
+            );
+        } catch (error) {
+            // A recently sent code is still valid; continue to verification.
+            if (!getErrorMessage(error).includes("OTP_COOLDOWN")) {
+                throw error;
+            }
+        }
+
+        return {
+            verified: false,
+            email: user.email,
+        };
+    }
+
+    await createSession(user._id);
+
+    return {
+        verified: true,
+        email: user.email,
     };
 }
 

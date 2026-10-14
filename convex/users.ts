@@ -1,10 +1,9 @@
+
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 
 export const getByEmail = internalQuery({
-    args: {
-        email: v.string(),
-    },
+    args: { email: v.string() },
     handler: async (ctx, args) => {
         const email = args.email.trim().toLowerCase();
 
@@ -16,9 +15,7 @@ export const getByEmail = internalQuery({
 });
 
 export const getById = internalQuery({
-    args: {
-        userId: v.id("users"),
-    },
+    args: { userId: v.id("users") },
     handler: async (ctx, args) => {
         return await ctx.db.get(args.userId);
     },
@@ -38,7 +35,10 @@ export const registerPatient = internalMutation({
             throw new ConvexError("INVALID_FULL_NAME");
         }
 
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+        if (
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+            email.length > 254
+        ) {
             throw new ConvexError("INVALID_EMAIL");
         }
 
@@ -52,11 +52,23 @@ export const registerPatient = internalMutation({
             .unique();
 
         if (existingUser) {
+            if (
+                existingUser.role === "USER" &&
+                existingUser.isActive &&
+                existingUser.emailVerified !== true
+            ) {
+                // Resume verification for the existing unverified account.
+                // Never replace its password with a new registration attempt.
+                return existingUser._id;
+            }
+
             throw new ConvexError("EMAIL_ALREADY_EXISTS");
         }
 
         const now = Date.now();
 
+        // Create the authentication account only.
+        // Do not create a patient profile before email verification.
         return await ctx.db.insert("users", {
             fullName,
             email,
@@ -154,7 +166,9 @@ export const verifyEmailCode = internalMutation({
             .withIndex("by_user", (q) => q.eq("userId", args.userId))
             .collect();
 
-        const code = codes.sort((a, b) => b.createdAt - a.createdAt)[0];
+        const code = codes.sort(
+            (a, b) => b.createdAt - a.createdAt,
+        )[0];
 
         if (!code || code.consumedAt !== undefined) {
             return {
@@ -166,9 +180,7 @@ export const verifyEmailCode = internalMutation({
         const now = Date.now();
 
         if (code.expiresAt <= now) {
-            await ctx.db.patch(code._id, {
-                consumedAt: now,
-            });
+            await ctx.db.patch(code._id, { consumedAt: now });
 
             return {
                 verified: false,
@@ -200,14 +212,28 @@ export const verifyEmailCode = internalMutation({
             };
         }
 
-        await ctx.db.patch(code._id, {
-            consumedAt: now,
-        });
+        // Consume the OTP and verify the user.
+        await ctx.db.patch(code._id, { consumedAt: now });
 
         await ctx.db.patch(user._id, {
             emailVerified: true,
             updatedAt: now,
         });
+
+        // Create a patient profile only after successful verification.
+        // Check first so verification retries cannot create duplicates.
+        const existingProfile = await ctx.db
+            .query("patients")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .unique();
+
+        if (!existingProfile) {
+            await ctx.db.insert("patients", {
+                userId: user._id,
+                createdAt: now,
+                updatedAt: now,
+            });
+        }
 
         return {
             verified: true,
@@ -238,6 +264,16 @@ export const deleteUnverifiedPatient = internalMutation({
 
         for (const code of codes) {
             await ctx.db.delete(code._id);
+        }
+
+        // Clean up any legacy profile from before this change.
+        const profiles = await ctx.db
+            .query("patients")
+            .withIndex("by_user", (q) => q.eq("userId", args.userId))
+            .collect();
+
+        for (const profile of profiles) {
+            await ctx.db.delete(profile._id);
         }
 
         await ctx.db.delete(user._id);

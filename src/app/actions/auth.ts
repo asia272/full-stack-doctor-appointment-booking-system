@@ -9,6 +9,7 @@ import {
 
 import {
     beginAdminLogin,
+    loginPatient,
     loginWithPassword,
     logout,
     registerPatient,
@@ -38,6 +39,7 @@ function getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
+
 export async function registerAction(
     _previousState: AuthActionState,
     formData: FormData,
@@ -46,7 +48,6 @@ export async function registerAction(
         fullName: formData.get("fullName"),
         email: formData.get("email"),
         password: formData.get("password"),
-        confirmPassword: formData.get("confirmPassword"),
     });
 
     if (!parsed.success) {
@@ -57,16 +58,23 @@ export async function registerAction(
         };
     }
 
-    let result: { email: string };
-
     try {
-        result = await registerPatient({
-            fullName: parsed.data.fullName,
-            email: parsed.data.email,
-            password: parsed.data.password,
-        });
+        const result = await registerPatient(parsed.data);
+
+        redirect(
+            `/verify-email?email=${encodeURIComponent(result.email)}`,
+        );
     } catch (error) {
-        console.error("[auth] Registration failed:", error);
+        // Next.js redirect() throws internally. Do not swallow it.
+        if (
+            error &&
+            typeof error === "object" &&
+            "digest" in error &&
+            typeof error.digest === "string" &&
+            error.digest.startsWith("NEXT_REDIRECT")
+        ) {
+            throw error;
+        }
 
         return {
             success: false,
@@ -76,9 +84,8 @@ export async function registerAction(
                     : "Unable to create your account. Please try again.",
         };
     }
-
-    redirect(`/verify-email?email=${encodeURIComponent(result.email)}`);
 }
+
 
 export async function verifyEmailAction(
     _previousState: AuthActionState,
@@ -176,6 +183,7 @@ export async function resendVerificationCodeAction(
     }
 }
 
+
 export async function patientLoginAction(
     _previousState: AuthActionState,
     formData: FormData,
@@ -194,16 +202,36 @@ export async function patientLoginAction(
     }
 
     try {
-        await loginWithPassword(parsed.data, ["USER"]);
-    } catch {
+        const result = await loginPatient(parsed.data);
+
+        if (!result.verified) {
+            redirect(
+                `/verify-email?email=${encodeURIComponent(result.email)}`,
+            );
+        }
+    } catch (error) {
+        if (
+            error &&
+            typeof error === "object" &&
+            "digest" in error &&
+            typeof error.digest === "string" &&
+            error.digest.startsWith("NEXT_REDIRECT")
+        ) {
+            throw error;
+        }
+
         return {
             success: false,
-            message: INVALID_LOGIN_MESSAGE,
+            message:
+                error instanceof Error
+                    ? error.message
+                    : "Invalid email or password.",
         };
     }
 
     redirect("/");
 }
+
 
 
 

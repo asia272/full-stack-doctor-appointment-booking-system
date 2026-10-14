@@ -33,14 +33,6 @@ export async function requireRole(
     return user;
 }
 
-export async function requireAdmin(): Promise<SessionUser> {
-    return requireRole("ADMIN");
-}
-
-export async function requireDoctor(): Promise<SessionUser> {
-    return requireRole("DOCTOR");
-}
-
-export async function requirePatient(): Promise<SessionUser> {
-    return requireRole("USER");
-}
+export const requireAdmin = () => requireRole("ADMIN");
+export const requireDoctor = () => requireRole("DOCTOR");
+export const requirePatient = () => requireRole("USER");
