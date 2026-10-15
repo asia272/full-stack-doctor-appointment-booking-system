@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
-import { internalMutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import {
     formatSlotLabel,
     getBookingDates,
@@ -180,5 +181,137 @@ export const createAppointment = internalMutation({
         });
 
         return { appointmentId };
+    },
+});
+
+/**
+ * All appointments of one patient with doctor details.
+ * Upcoming (cancellable) appointments come first, soonest first;
+ * everything else follows, newest first.
+ * Internal: call it from your server after verifying the session.
+ */
+export const listMyAppointments = internalQuery({
+    args: { patientId: v.id("users") },
+    handler: async (ctx, args) => {
+        const rows = await ctx.db
+            .query("appointments")
+            .withIndex("by_patient", (q) => q.eq("patientId", args.patientId))
+            .order("desc")
+            .take(200);
+
+        const now = getClinicNow();
+
+        const doctorCache = new Map<
+            Id<"doctors">,
+            Promise<{
+                id: string;
+                fullName: string;
+                specialty: string;
+                address: string;
+                imageUrl: string | null;
+            } | null>
+        >();
+
+        function loadDoctor(doctorId: Id<"doctors">) {
+            let pending = doctorCache.get(doctorId);
+
+            if (!pending) {
+                pending = (async () => {
+                    const doctor = await ctx.db.get(doctorId);
+                    if (!doctor) return null;
+
+                    const user = await ctx.db.get(doctor.userId);
+                    if (!user) return null;
+
+                    const imageUrl = user.imageStorageId
+                        ? await ctx.storage.getUrl(user.imageStorageId)
+                        : null;
+
+                    return {
+                        id: doctor._id as string,
+                        fullName: user.fullName,
+                        specialty: doctor.specialty,
+                        address: doctor.address,
+                        imageUrl,
+                    };
+                })();
+
+                doctorCache.set(doctorId, pending);
+            }
+
+            return pending;
+        }
+
+        const items = await Promise.all(
+            rows.map(async (row) => {
+                const isUpcoming =
+                    isSlotBlockingStatus(row.status) &&
+                    (row.appointmentDate > now.date ||
+                        (row.appointmentDate === now.date &&
+                            timeToMinutes(row.appointmentTime) > now.minutes));
+
+                return {
+                    id: row._id as string,
+                    status: row.status,
+                    appointmentDate: row.appointmentDate,
+                    appointmentTime: row.appointmentTime,
+                    consultationFee: row.consultationFee,
+                    reason: row.reason ?? null,
+                    canCancel: isUpcoming,
+                    doctor: await loadDoctor(row.doctorId),
+                };
+            }),
+        );
+
+        const when = (item: (typeof items)[number]) =>
+            `${item.appointmentDate} ${item.appointmentTime}`;
+
+        const upcoming = items
+            .filter((item) => item.canCancel)
+            .sort((a, b) => when(a).localeCompare(when(b)));
+
+        const others = items
+            .filter((item) => !item.canCancel)
+            .sort((a, b) => when(b).localeCompare(when(a)));
+
+        return [...upcoming, ...others];
+    },
+});
+
+/**
+ * Cancels an upcoming appointment that belongs to the patient.
+ * Cancelling frees the slot because only PENDING and CONFIRMED block slots.
+ */
+export const cancelAppointment = internalMutation({
+    args: {
+        patientId: v.id("users"),
+        appointmentId: v.id("appointments"),
+    },
+    handler: async (ctx, args) => {
+        const appointment = await ctx.db.get(args.appointmentId);
+
+        // Same error for "missing" and "not yours" so ids cannot be probed.
+        if (!appointment || appointment.patientId !== args.patientId) {
+            throw new ConvexError("NOT_FOUND");
+        }
+
+        if (!isSlotBlockingStatus(appointment.status)) {
+            throw new ConvexError("NOT_CANCELLABLE");
+        }
+
+        const now = getClinicNow();
+        const isPast =
+            appointment.appointmentDate < now.date ||
+            (appointment.appointmentDate === now.date &&
+                timeToMinutes(appointment.appointmentTime) <= now.minutes);
+
+        if (isPast) throw new ConvexError("ALREADY_PAST");
+
+        await ctx.db.patch(args.appointmentId, {
+            status: "CANCELLED",
+            updatedAt: Date.now(),
+        });
+
+        return { appointmentId: args.appointmentId as string };
     },
 });
