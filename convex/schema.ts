@@ -1,4 +1,3 @@
-
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -34,8 +33,6 @@ const appointmentStatus = v.union(
 export default defineSchema({
     // --------------------------------------------------
     // USERS
-    // Shared account information for admins, doctors,
-    // and patients. Doctors also have a doctors profile.
     // --------------------------------------------------
     users: defineTable({
         fullName: v.string(),
@@ -59,9 +56,9 @@ export default defineSchema({
 
     // --------------------------------------------------
     // DOCTORS
-    // Doctor-specific professional information.
-    // Name, email, password, and profile image are stored
-    // in users and linked using userId.
+    // CHANGED: added optional working-hours fields used to
+    // generate booking slots. When omitted, defaults in
+    // convex/lib/booking.ts apply (08:00 - 17:00, 30 min).
     // --------------------------------------------------
     doctors: defineTable({
         userId: v.id("users"),
@@ -72,6 +69,12 @@ export default defineSchema({
         about: v.string(),
         consultationFee: v.number(),
         address: v.string(),
+
+        // Working hours, "HH:mm" 24-hour clinic time.
+        workDayStart: v.optional(v.string()),
+        workDayEnd: v.optional(v.string()),
+        // Length of one appointment slot in minutes.
+        slotMinutes: v.optional(v.number()),
 
         // Inactive doctors should not accept new bookings.
         isActive: v.boolean(),
@@ -85,18 +88,22 @@ export default defineSchema({
 
     // --------------------------------------------------
     // APPOINTMENTS
-    // Simple date-and-time booking model.
-    // No separate availability table is required.
+    // CHANGED:
+    // - consultationFee: price snapshot at booking time, so
+    //   later fee changes never rewrite history.
+    // - new indexes for fast slot-conflict checks.
     // --------------------------------------------------
     appointments: defineTable({
         patientId: v.id("users"),
         doctorId: v.id("doctors"),
 
-        // Use a consistent format:
         // appointmentDate: "2026-10-20"
-        // appointmentTime: "14:30" (24-hour format)
+        // appointmentTime: "14:30" (24-hour format, clinic time)
         appointmentDate: v.string(),
         appointmentTime: v.string(),
+
+        // Fee charged for this visit (snapshot).
+        consultationFee: v.number(),
 
         // Optional note describing the reason for the visit.
         reason: v.optional(v.string()),
@@ -119,14 +126,20 @@ export default defineSchema({
             "doctorId",
             "appointmentDate",
             "status",
+        ])
+        .index("by_doctor_date_and_time", [
+            "doctorId",
+            "appointmentDate",
+            "appointmentTime",
+        ])
+        .index("by_patient_date_and_time", [
+            "patientId",
+            "appointmentDate",
+            "appointmentTime",
         ]),
 
     // --------------------------------------------------
     // SESSIONS
-    // For your custom authentication system.
-    // Store a cryptographic hash of the session token.
-    // The raw token belongs only in the secure cookie.
-    // expiresAt and timestamps use Unix milliseconds.
     // --------------------------------------------------
     sessions: defineTable({
         userId: v.id("users"),
@@ -144,8 +157,6 @@ export default defineSchema({
 
     // --------------------------------------------------
     // PASSWORD RESET TOKENS
-    // Supports the forgot-password and reset-password
-    // flows without storing raw reset tokens.
     // --------------------------------------------------
     passwordResetTokens: defineTable({
         userId: v.id("users"),
@@ -171,7 +182,6 @@ export default defineSchema({
         .index("by_user", ["userId"])
         .index("by_expiration", ["expiresAt"]),
 
-
     patients: defineTable({
         userId: v.id("users"),
         phoneNumber: v.optional(v.string()),
@@ -188,6 +198,4 @@ export default defineSchema({
         createdAt: v.number(),
         updatedAt: v.number(),
     }).index("by_user", ["userId"]),
-
-
 });
