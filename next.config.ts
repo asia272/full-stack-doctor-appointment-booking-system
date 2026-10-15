@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+
+  // Aapke project ko isi loader ki zarurat hai, is liye rakha hai.
   turbopack: {
     rules: {
       "*.css": {
@@ -10,6 +11,14 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+
+  // Doctor photos Convex storage se aati hain.
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "**.convex.cloud" },
+      { protocol: "https", hostname: "**.convex.site" },
+    ],
   },
 };
 

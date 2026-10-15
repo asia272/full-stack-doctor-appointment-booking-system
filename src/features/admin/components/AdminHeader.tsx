@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { LogOut, Menu, Stethoscope } from "lucide-react";
 
-
+// ⚠️ Replace with YOUR existing logout server action.
 import { logoutAction } from "@/app/actions/auth";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,16 +26,19 @@ export default function AdminHeader() {
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
             <div className="flex items-center gap-3">
                 <Sheet open={open} onOpenChange={setOpen}>
-                    <SheetTrigger>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="md:hidden"
-                            aria-label="Open menu"
-                        >
-                            <Menu className="size-5" />
-                        </Button>
+                    <SheetTrigger
+                        render={
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="md:hidden"
+                                aria-label="Open menu"
+                            />
+                        }
+                    >
+                        <Menu className="size-5" />
                     </SheetTrigger>
+
                     <SheetContent side="left" className="w-72 p-0">
                         <SheetHeader className="border-b p-4">
                             <SheetTitle>Admin menu</SheetTitle>

@@ -172,9 +172,6 @@ export default defineSchema({
         .index("by_expiration", ["expiresAt"]),
 
 
-
-
-
     patients: defineTable({
         userId: v.id("users"),
         phoneNumber: v.optional(v.string()),
