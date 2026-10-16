@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -193,7 +194,7 @@ export default function CreateDoctorForm() {
     const errors = state.fieldErrors;
 
     return (
-        <Card className="w-full max-w-5xl">
+        <Card className="w-full max-w-5xl rounded-[5px] border-[#D8D8D8]">
             <CardContent className="p-6 sm:p-8">
                 <form
                     key={formKey}
@@ -234,13 +235,15 @@ export default function CreateDoctorForm() {
                         <div className="space-y-1">
                             <label
                                 htmlFor="doctorImage"
-                                className="block cursor-pointer text-sm font-medium"
+                                className="cursor-pointer"
                             >
                                 Upload doctor picture
                             </label>
+
                             <p className="text-xs text-muted-foreground">
                                 JPG, PNG or WebP · max 5 MB
                             </p>
+
                             {selectedImage && (
                                 <Button
                                     type="button"
@@ -254,6 +257,7 @@ export default function CreateDoctorForm() {
                                     Remove
                                 </Button>
                             )}
+
                             {imageError && (
                                 <p
                                     role="alert"
@@ -277,6 +281,7 @@ export default function CreateDoctorForm() {
                                 errors={errors?.fullName}
                                 disabled={busy}
                             />
+
                             <Field
                                 name="email"
                                 label="Doctor email"
@@ -286,6 +291,7 @@ export default function CreateDoctorForm() {
                                 errors={errors?.email}
                                 disabled={busy}
                             />
+
                             <Field
                                 name="password"
                                 label="Set password"
@@ -314,6 +320,7 @@ export default function CreateDoctorForm() {
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
+
                                     <SelectContent>
                                         {EXPERIENCE_OPTIONS.map((years) => (
                                             <SelectItem
@@ -357,6 +364,7 @@ export default function CreateDoctorForm() {
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
+
                                     <SelectContent>
                                         {SPECIALTIES.map((specialty) => (
                                             <SelectItem
@@ -386,7 +394,9 @@ export default function CreateDoctorForm() {
                                     errors={errors?.address}
                                     disabled={busy}
                                 />
-                                <Input
+
+                                <input
+                                    id="addressLine2"
                                     name="addressLine2"
                                     placeholder="Address 2"
                                     aria-label="Address line 2"
@@ -399,6 +409,7 @@ export default function CreateDoctorForm() {
                     {/* About */}
                     <div className="space-y-2">
                         <Label htmlFor="about">About doctor</Label>
+
                         <Textarea
                             id="about"
                             name="about"
@@ -409,6 +420,7 @@ export default function CreateDoctorForm() {
                             required
                             disabled={busy}
                             aria-invalid={Boolean(errors?.about?.length)}
+                            className="doctor-form-textarea"
                         />
                         {errors?.about?.map((error) => (
                             <p
@@ -428,23 +440,21 @@ export default function CreateDoctorForm() {
                             {state.message}
                         </p>
                     )}
+                    <Button
+                        type="submit"
+                        disabled={busy}
+                        className="min-w-40 h-[54px] rounded-[47px] text-[18px]"
+                    >
+                        {busy ? (
+                            <>
+                                <LoaderCircle className="mr-2 size-4 animate-spin" />
+                                {isUploading ? "Uploading..." : "Saving..."}
+                            </>
+                        ) : (
+                            "Add doctor"
+                        )}
+                    </Button>
 
-                    <div className="flex justify-end border-t pt-5">
-                        <Button
-                            type="submit"
-                            disabled={busy}
-                            className="min-w-40 rounded-full px-8"
-                        >
-                            {busy ? (
-                                <>
-                                    <LoaderCircle className="mr-2 size-4 animate-spin" />
-                                    {isUploading ? "Uploading..." : "Saving..."}
-                                </>
-                            ) : (
-                                "Add doctor"
-                            )}
-                        </Button>
-                    </div>
                 </form>
             </CardContent>
         </Card>
@@ -467,7 +477,9 @@ function FieldShell({
     return (
         <div className="min-w-0 space-y-2">
             <Label htmlFor={id}>{label}</Label>
+
             {children}
+
             {errors?.length ? (
                 <ul id={`${id}-errors`} className="space-y-1">
                     {errors.map((error) => (

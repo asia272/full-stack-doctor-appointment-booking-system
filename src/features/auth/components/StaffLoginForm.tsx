@@ -51,13 +51,13 @@ export default function StaffLoginForm() {
         "h-[42px] w-full rounded-[4px] border border-[#DADADA] bg-white px-4  outline-none  focus:border-black text-[16px] ";
 
     const labelClassName =
-        "block text-sm font-medium leading-5";
+        "block text-[16px] font-medium leading-5";
 
     return (
         <main className="flex min-h-screen w-full items-start justify-center bg-white px-5 pt-[19.7vh] pb-12">
             <section
                 aria-labelledby="staff-login-title"
-                className="w-full max-w-[476px] rounded-[20px] border border-[##D4D4D4] bg-white px-5 py-7 shadow-[0px_20px_50px_0px_#5F6FFF1A] sm:px-8 sm:py-9">
+                className="w-full max-w-[476px] rounded-[20px] border border-[#D4D4D4] bg-white px-5 py-7 shadow-[0px_20px_50px_0px_#5F6FFF1A] sm:px-8 sm:py-9">
                 <header className="mb-[23px]">
                     <h1
                         id="staff-login-title"
