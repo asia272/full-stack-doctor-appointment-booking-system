@@ -184,7 +184,7 @@ export default function StaffLoginForm() {
                                 required
                                 autoFocus
                                 placeholder="000000"
-                                className={inputClassName}
+                                className={`${inputClassName} text-center tracking-[0.35em] placeholder:text-[#9CA3AF]`}
                             />
                         </div>
 
