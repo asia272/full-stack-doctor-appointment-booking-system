@@ -18,12 +18,13 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import AdminNav from "@/features/admin/components/AdminNav";
+import Image from "next/image";
 
 export default function AdminHeader() {
     const [open, setOpen] = useState(false);
 
     return (
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background px-4 sm:px-6">
+        <header className="sticky top-0 z-40 flex h-22 items-center justify-between border-b border-[#BEBEBE] bg-background px-2 sm:px-4">
             <div className="flex items-center gap-3">
                 <Sheet open={open} onOpenChange={setOpen}>
                     <SheetTrigger
@@ -54,27 +55,30 @@ export default function AdminHeader() {
                     href="/admin/dashboard"
                     className="flex items-center gap-2.5"
                 >
-                    <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                        <Stethoscope className="size-5" />
-                    </span>
-                    <span className="leading-none">
-                        <span className="block text-xl font-bold tracking-tight">
-                            Prescripto
-                        </span>
-                        <span className="block text-[10px] font-medium text-muted-foreground">
-                            Dashboard Panel
-                        </span>
-                    </span>
+
+                    <Image
+                        src="/assets/assets_admin/admin_logo.svg"
+                        alt="Admin Logo"
+                        width={217}
+                        height={46}
+                        priority
+                        className="h-[46px] w-[217px] object-contain"
+                    />
+
+                    <Badge variant="outline" className="rounded-full border border-[#4B5563] !px-2.5">
+                        Admin
+                    </Badge>
+
+
                 </Link>
 
-                <Badge variant="outline" className="rounded-full">
-                    Admin
-                </Badge>
             </div>
 
             <form action={logoutAction}>
-                <Button type="submit" className="rounded-full px-6">
-                    <LogOut className="mr-2 size-4" />
+                <Button
+                    type="submit"
+                    className="h-12 w-full rounded-full px-6 text-base font-medium sm:h-[54px] sm:px-14 sm:text-[18px]"
+                >
                     Logout
                 </Button>
             </form>

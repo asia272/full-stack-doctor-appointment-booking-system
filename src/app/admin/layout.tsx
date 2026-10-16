@@ -25,7 +25,7 @@ export default async function AdminLayout({
             <AdminHeader />
 
             <div className="flex flex-1">
-                <aside className="sticky top-16 hidden h-[calc(100svh-4rem)] w-64 shrink-0 overflow-y-auto border-r bg-background md:block">
+                <aside className="sticky top-16 hidden h-[calc(100svh-4rem)] w-[340px] shrink-0 overflow-y-auto border-r border-[#BEBEBE] bg-background md:block">
                     <AdminNav />
                 </aside>
 
