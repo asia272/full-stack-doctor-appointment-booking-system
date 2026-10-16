@@ -47,65 +47,55 @@ export default function StaffLoginForm() {
     const success = otpStep ? otpState.success : loginState.success;
     const pending = otpStep ? otpPending : loginPending;
 
+    const inputClassName =
+        "h-[42px] w-full rounded-[4px] border border-[#DADADA] bg-white px-4  outline-none  focus:border-black text-[16px] ";
+
+    const labelClassName =
+        "block text-sm font-medium leading-5";
+
     return (
-        <main className="mx-auto w-full max-w-md px-5 py-10">
-            <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-                <header className="mb-6">
-                    <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-                        {otpStep
-                            ? "Verify your email"
-                            : "Staff sign in"}
+        <main className="flex min-h-screen w-full items-start justify-center bg-white px-5 pt-[19.7vh] pb-12">
+            <section
+                aria-labelledby="staff-login-title"
+                className="w-full max-w-[476px] rounded-[20px] border border-[##D4D4D4] bg-white px-5 py-7 shadow-[0px_20px_50px_0px_#5F6FFF1A] sm:px-8 sm:py-9">
+                <header className="mb-[23px]">
+                    <h1
+                        id="staff-login-title"
+                        className="text-center text-[27px] leading-[1.3] font-semibold tracking-[-0.8px]  sm:text-[32px]"
+                    >
+                        {otpStep ? (
+                            <>
+                                <span className="text-primary">Verify</span>{" "}
+                                your email
+                            </>
+                        ) : (
+                            <>
+                                <span className="text-primary">
+                                    {mode === "admin" ? "Admin" : "Doctor"}
+                                </span>{" "}
+                                Login
+                            </>
+                        )}
                     </h1>
 
-                    <p className="mt-2 text-sm leading-6 text-gray-600">
-                        {otpStep
-                            ? "Enter the six-digit code sent to your configured Admin email."
-                            : "Sign in to access your staff dashboard."}
-                    </p>
+                    {otpStep && (
+                        <p className="mt-3 text-center text-[15px] leading-6 text-[#666666]">
+                            Enter the six-digit code sent to your configured
+                            Admin email.
+                        </p>
+                    )}
                 </header>
 
-                {!otpStep && (
-                    <div className="mb-6 grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-1">
-                        <button
-                            type="button"
-                            onClick={() => changeMode("admin")}
-                            aria-pressed={mode === "admin"}
-                            className={`rounded-md px-3 py-2 text-sm font-medium transition ${mode === "admin"
-                                    ? "bg-white text-gray-900 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                }`}
-                        >
-                            Admin
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => changeMode("doctor")}
-                            aria-pressed={mode === "doctor"}
-                            className={`rounded-md px-3 py-2 text-sm font-medium transition ${mode === "doctor"
-                                    ? "bg-white text-gray-900 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
-                                }`}
-                        >
-                            Doctor
-                        </button>
-                    </div>
-                )}
-
                 {!otpStep ? (
-                    <form action={loginAction} className="space-y-5">
-                        <input
-                            type="hidden"
-                            name="mode"
-                            value={mode}
-                        />
+                    <form action={loginAction} className="flex flex-col gap-5">
+                        <input type="hidden" name="mode" value={mode} />
 
-                        <div>
+                        <div className="flex flex-col gap-2">
                             <label
                                 htmlFor="staff-email"
-                                className="mb-1.5 block text-sm font-medium text-gray-800"
+                                className={labelClassName}
                             >
-                                Email address
+                                Email
                             </label>
 
                             <input
@@ -116,16 +106,17 @@ export default function StaffLoginForm() {
                                 required
                                 maxLength={254}
                                 value={email}
-                                onChange={(event) => setEmail(event.target.value)}
-                                placeholder="you@example.com"
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-500"
+                                onChange={(event) =>
+                                    setEmail(event.target.value)
+                                }
+                                className={inputClassName}
                             />
                         </div>
 
-                        <div>
+                        <div className="flex flex-col gap-2">
                             <label
                                 htmlFor="staff-password"
-                                className="mb-1.5 block text-sm font-medium text-gray-800"
+                                className={labelClassName}
                             >
                                 Password
                             </label>
@@ -137,15 +128,15 @@ export default function StaffLoginForm() {
                                 autoComplete="current-password"
                                 required
                                 maxLength={128}
-                                placeholder="Enter your password"
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-gray-500"
+                                className={inputClassName}
                             />
                         </div>
 
                         {loginState.message && (
                             <p
                                 role="status"
-                                className="text-sm text-red-600"
+                                aria-live="polite"
+                                className="-mt-1 text-sm leading-5 text-red-600"
                             >
                                 {loginState.message}
                             </p>
@@ -154,17 +145,13 @@ export default function StaffLoginForm() {
                         <button
                             type="submit"
                             disabled={loginPending}
-                            className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex h-[46px] w-full items-center justify-center rounded-[6px] bg-primary px-5 text-base font-medium text-primary-foreground transition-colors hover:bg-[#5061f0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5f6fff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {loginPending
-                                ? "Please wait..."
-                                : mode === "admin"
-                                    ? "Continue to email verification"
-                                    : "Sign in as Doctor"}
+                            {loginPending ? "Please wait..." : "Login"}
                         </button>
                     </form>
                 ) : (
-                    <form action={otpAction} className="space-y-5">
+                    <form action={otpAction} className="flex flex-col gap-5">
                         <input
                             type="hidden"
                             name="email"
@@ -177,10 +164,10 @@ export default function StaffLoginForm() {
                             value={userId}
                         />
 
-                        <div>
+                        <div className="flex flex-col gap-2">
                             <label
                                 htmlFor="admin-otp"
-                                className="mb-1.5 block text-sm font-medium text-gray-800"
+                                className={labelClassName}
                             >
                                 Six-digit verification code
                             </label>
@@ -197,14 +184,15 @@ export default function StaffLoginForm() {
                                 required
                                 autoFocus
                                 placeholder="000000"
-                                className="w-full rounded-lg border border-gray-300 px-3 py-3 text-center text-lg tracking-[0.35em] text-gray-900 outline-none transition focus:border-gray-500"
+                                className={inputClassName}
                             />
                         </div>
 
                         {message && (
                             <p
                                 role="status"
-                                className={`text-sm ${success ? "text-green-700" : "text-red-600"
+                                aria-live="polite"
+                                className={`text-sm leading-5 ${success ? "text-green-700" : "text-red-600"
                                     }`}
                             >
                                 {message}
@@ -214,7 +202,7 @@ export default function StaffLoginForm() {
                         <button
                             type="submit"
                             disabled={pending}
-                            className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex h-[46px] w-full items-center justify-center rounded-[6px] bg-primary px-5 text-base font-medium text-primary-foreground transition-colors hover:bg-[#5061f0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5f6fff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {pending ? "Verifying..." : "Verify and sign in"}
                         </button>
@@ -225,16 +213,36 @@ export default function StaffLoginForm() {
                                 setOtpStep(false);
                                 setUserId("");
                             }}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                            className="h-[42px] w-full rounded-[4px] border border-[#DADADA] bg-white px-4 py-2.5 text-sm font-medium  hover:bg-[#f7f7f7]"
                         >
                             Back to sign in
                         </button>
                     </form>
                 )}
 
-                <p className="mt-6 text-center text-xs leading-5 text-gray-500">
-                    Authorized staff only. Admin login requires email verification.
-                </p>
+                {!otpStep && (
+                    <p className="mt-5 text-base leading-[1.6]">
+                        {mode === "admin" ? "Doctor" : "Admin"} Login?{" "}
+                        <button
+                            type="button"
+                            onClick={() =>
+                                changeMode(
+                                    mode === "admin" ? "doctor" : "admin",
+                                )
+                            }
+                            className="text-primary underline underline-offset-2 hover:text-[#4f60b3]"
+                        >
+                            Click here
+                        </button>
+                    </p>
+                )}
+
+                {otpStep && (
+                    <p className="mt-5 text-center text-xs leading-5 ">
+                        Authorized staff only. Admin login requires email
+                        verification.
+                    </p>
+                )}
             </section>
         </main>
     );
