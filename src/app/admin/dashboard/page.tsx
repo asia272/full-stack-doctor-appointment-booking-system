@@ -3,8 +3,11 @@ import type { Metadata } from "next";
 import { requireAdmin } from "@/features/admin/lib/require-admin";
 import { getAdminDashboardData } from "@/lib/appointments/admin-appointment.service";
 import StatCard from "@/components/dashboard/StatCard";
+import StatusLabel from "@/components/dashboard/StatusLabel";
 import LatestAppointments from "@/components/dashboard/LatestAppointments";
 import CancelAppointmentButton from "@/features/admin/components/CancelappointmentButton";
+import { appointmentSummary } from "@/lib/format-appointment";
+
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
@@ -40,10 +43,15 @@ export default async function DashboardPage() {
                 appointments={latestAppointments}
                 renderAction={(a) =>
                     a.canCancel ? (
-                        <CancelAppointmentButton appointmentId={a.id} />
-                    ) : null
+                        <CancelAppointmentButton
+                            appointmentId={a.id}
+                            summary={appointmentSummary(a)}
+                        />
+                    ) : (
+                        <StatusLabel status={a.status} />
+                    )
                 }
             />
         </div>
     );
-} 
+}

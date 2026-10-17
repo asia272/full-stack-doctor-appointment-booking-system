@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import { requireAdmin } from "@/features/admin/lib/require-admin";
 import { listAppointmentsForAdmin } from "@/lib/appointments/admin-appointment.service";
 import PageHeader from "@/features/admin/components/PageHeader";
-import AdminAppointmentsTable from "@/features/admin/components/AdminAppointmentsTable";
+import AppointmentsTable from "@/components/dashboard/AppointmentsTable";
+import StatusLabel from "@/components/dashboard/StatusLabel";
+import CancelAppointmentButton from "@/features/admin/components/CancelappointmentButton";
+import { appointmentSummary } from "@/lib/format-appointment";
 
 export const metadata: Metadata = { title: "All Appointments" };
 
@@ -20,7 +23,20 @@ export default async function AppointmentsPage() {
                     No appointments have been booked yet.
                 </div>
             ) : (
-                <AdminAppointmentsTable appointments={appointments} />
+                <AppointmentsTable
+                    variant="admin"
+                    appointments={appointments}
+                    renderAction={(a) =>
+                        a.canCancel ? (
+                            <CancelAppointmentButton
+                                appointmentId={a.id}
+                                summary={appointmentSummary(a)}
+                            />
+                        ) : (
+                            <StatusLabel status={a.status} />
+                        )
+                    }
+                />
             )}
         </>
     );

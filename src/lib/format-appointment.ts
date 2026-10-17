@@ -16,3 +16,13 @@ export function formatDateTime(isoDate: string, timeLabel: string): string {
 export function formatMoney(amount: number): string {
     return `$${amount.toLocaleString("en-US")}`;
 }
+export function appointmentSummary(a: {
+    patient: { fullName: string } | null;
+    doctor: { fullName: string } | null;
+    appointmentDate: string;
+    timeLabel: string;
+}): string {
+    const patient = a.patient?.fullName ?? "The patient";
+    const doctor = a.doctor?.fullName ?? "the doctor";
+    return `${patient} with Dr. ${doctor} on ${formatDate(a.appointmentDate)}, ${a.timeLabel}.`;
+}

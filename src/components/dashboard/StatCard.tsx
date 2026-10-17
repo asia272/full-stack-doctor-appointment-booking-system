@@ -13,7 +13,7 @@ export default function StatCard({ iconSrc, value, label }: StatCardProps) {
                 <Image src={iconSrc} alt="" width={40} height={40} />
             </div>
             <div>
-                <p className="text-2xl font-semibold leading-tight text-[#262626]">
+                <p className="text-2xl font-semibold leading-tight text-[#515151]">
                     {value}
                 </p>
                 <p className="text-base text-[#6B7280]">{label}</p>
