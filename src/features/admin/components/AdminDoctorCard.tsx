@@ -38,10 +38,11 @@ export default function AdminDoctorCard({ doctor }: { doctor: AdminDoctor }) {
     }
 
     return (
-        <article className="group overflow-hidden rounded-xl border bg-background transition-shadow hover:shadow-md">
+        <article className="group mx-auto w-full max-w-[226px] overflow-hidden rounded-lg border border-[#C9D8FF] bg-background font-['Outfit',sans-serif] transition-shadow hover:shadow-md">
+            {/* Image area: square, #EAEFFF, 12px top corners */}
             <div
                 className={cn(
-                    "relative aspect-[4/5] bg-primary/10 transition-colors group-hover:bg-primary/25",
+                    "relative aspect-square w-full rounded-t-xl bg-[#EAEFFF] transition-colors group-hover:bg-[#DCE5FF]",
                     !available && "bg-muted group-hover:bg-muted",
                 )}
             >
@@ -50,9 +51,9 @@ export default function AdminDoctorCard({ doctor }: { doctor: AdminDoctor }) {
                         src={doctor.imageUrl}
                         alt={doctor.fullName}
                         fill
-                        sizes="(min-width: 1536px) 18vw, (min-width: 1024px) 22vw, (min-width: 640px) 30vw, 46vw"
+                        sizes="(min-width: 640px) 226px, 46vw"
                         className={cn(
-                            "object-cover object-top transition duration-300",
+                            "rounded-t-xl object-cover object-top transition duration-300",
                             !available && "opacity-60 grayscale",
                         )}
                     />
@@ -66,15 +67,16 @@ export default function AdminDoctorCard({ doctor }: { doctor: AdminDoctor }) {
                 )}
             </div>
 
-            <div className="space-y-1 p-4">
-                <h3 className="truncate text-base font-semibold">
+            {/* Text area */}
+            <div className="space-y-2 px-4 py-3">
+                <h3 className="truncate text-[18px] font-medium leading-none text-[#1F2937]">
                     {doctor.fullName}
                 </h3>
-                <p className="truncate text-sm text-muted-foreground">
+                <p className="truncate text-[14px] font-normal leading-none text-[#4B5563]">
                     {doctor.specialty}
                 </p>
 
-                <div className="flex items-center gap-2 pt-2">
+                <div className="flex items-center gap-2">
                     <Checkbox
                         id={checkboxId}
                         checked={available}
@@ -83,7 +85,7 @@ export default function AdminDoctorCard({ doctor }: { doctor: AdminDoctor }) {
                     />
                     <Label
                         htmlFor={checkboxId}
-                        className="cursor-pointer text-sm font-normal"
+                        className="cursor-pointer text-sm font-normal leading-none"
                     >
                         Available
                     </Label>

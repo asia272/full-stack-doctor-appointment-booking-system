@@ -11,7 +11,7 @@ type AppointmentsTableProps = {
     emptyText?: string;
 };
 
-const th = "px-4 py-4 text-left text-base font-medium text-[#262626]";
+const th = "px-4 py-4 text-left text-base font-[18px] text-[#323232]";
 const td = "px-4 py-3 text-[#515151]";
 
 export default function AppointmentsTable({
@@ -26,7 +26,7 @@ export default function AppointmentsTable({
         <div className="overflow-x-auto rounded-md border bg-background">
             <table className="w-full min-w-[720px] border-collapse">
                 <thead>
-                    <tr className="border-b">
+                    <tr className="border-b border-[#E1E1E1]">
                         <th className={th}>#</th>
                         <th className={th}>Patient</th>
                         {isAdmin && <th className={th}>Department</th>}
@@ -50,7 +50,7 @@ export default function AppointmentsTable({
                         </tr>
                     ) : (
                         appointments.map((a, index) => (
-                            <tr key={a.id} className="border-b last:border-b-0">
+                            <tr key={a.id} className="border-b last:border-b-0 border-[#E1E1E1]">
                                 <td className={td}>{index + 1}</td>
 
                                 <td className={td}>
