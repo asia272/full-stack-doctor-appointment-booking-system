@@ -41,7 +41,7 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
     return (
         <header className="w-full bg-white">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <nav className="flex h-20 items-center justify-between border-b border-gray-400">
+                <nav className="flex h-20 items-center justify-between border-b border-[#ADADAD]">
                     <Link href="/" aria-label="Home" className="shrink-0">
                         {/* Swap for your frontend logo if you have one */}
                         <Image
@@ -65,7 +65,7 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
                                     <Link
                                         href={link.href}
                                         aria-current={active ? "page" : undefined}
-                                        className="relative inline-block py-2 text-base font-medium tracking-wide text-gray-800 transition-colors hover:text-[#5F6FFF]"
+                                        className="relative inline-block py-2 text-base font-medium tracking-wide text-[#1F2937] transition-colors hover:text-[#5F6FFF]"
                                     >
                                         {link.label}
                                         <span
