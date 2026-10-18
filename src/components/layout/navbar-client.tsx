@@ -16,8 +16,8 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { Logo } from "./logo";
 import { UserMenu, type NavbarUser } from "./user-menu";
+import Image from "next/image";
 
 const NAV_LINKS = [
     { label: "HOME", href: "/" },
@@ -42,7 +42,18 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
         <header className="w-full bg-white">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <nav className="flex h-20 items-center justify-between border-b border-gray-400">
-                    <Logo />
+                    <Link href="/" aria-label="Home" className="shrink-0">
+                        {/* Swap for your frontend logo if you have one */}
+                        <Image
+                            src="/assets/assets_frontend/logo.svg"
+                            alt="Prescripto"
+                            width={217}
+                            height={46}
+                            priority
+                            className="h-[40px] w-auto object-contain sm:h-[46px]"
+                        />
+                    </Link>
+
 
                     {/* Desktop links */}
                     <ul className="hidden items-center gap-10 md:flex">
@@ -104,7 +115,18 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
                             <SheetContent side="right" className="w-72">
                                 <SheetHeader>
                                     <SheetTitle>
-                                        <Logo />
+                                        <Link href="/" aria-label="Home" className="shrink-0">
+                                            {/* Swap for your frontend logo if you have one */}
+                                            <Image
+                                                src="/assets/assets_frontend/logo.svg"
+                                                alt="Prescripto"
+                                                width={217}
+                                                height={46}
+                                                priority
+                                                className="h-[40px] w-auto object-contain sm:h-[46px]"
+                                            />
+                                        </Link>
+
                                     </SheetTitle>
                                 </SheetHeader>
 
