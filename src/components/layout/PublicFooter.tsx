@@ -3,19 +3,18 @@ import Image from "next/image";
 
 const company = [
     { label: "Home", href: "/" },
-    { label: "All Doctors", href: "/doctors" },
     { label: "About us", href: "/about" },
     { label: "Contact us", href: "/contact" },
 ];
 
 export default function PublicFooter() {
     return (
-        <footer className="mt-20 border-t border-[#ADADAD] bg-background">
+        <footer className="mt-20  bg-background">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[3fr_1fr_1fr] lg:gap-14">
                     <div>
                         <Image
-                            src="/assets/assets_admin/admin_logo.svg"
+                            src="/assets/assets_frontend/logo.svg"
                             alt="Prescripto"
                             width={217}
                             height={46}
@@ -29,7 +28,7 @@ export default function PublicFooter() {
                     </div>
 
                     <div>
-                        <h2 className="text-lg font-medium text-[#1F2937]">
+                        <h2 className="text-lg font-medium text-[#4B5563] uppercase">
                             Company
                         </h2>
                         <ul className="mt-4 space-y-2 text-sm text-[#4B5563]">
@@ -47,19 +46,20 @@ export default function PublicFooter() {
                     </div>
 
                     <div>
-                        <h2 className="text-lg font-medium text-[#1F2937]">
+                        <h2 className="text-lg font-medium text-[#4B5563] uppercase">
                             Get in touch
                         </h2>
                         <ul className="mt-4 space-y-2 text-sm text-[#4B5563]">
-                            {/* Replace with your real contact details */}
+
                             <li>+92-300-0000000</li>
-                            <li>support@prescripto.com</li>
+                            <li>example@gmail.com</li>
                         </ul>
                     </div>
                 </div>
 
-                <p className="border-t py-5 text-center text-sm text-[#4B5563]">
-                    © {new Date().getFullYear()} Prescripto. All rights reserved.
+                <p className="border-t py-5 text-center border-[#BDBDBD] text-sm text-[#4B5563]">
+
+                    Copyright  © {new Date().getFullYear()} Prescripto - All Right Reserved.
                 </p>
             </div>
         </footer>
