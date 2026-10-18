@@ -5,7 +5,7 @@ export default function Hero() {
     return (
         <section
             aria-labelledby="hero-heading"
-            className="relative flex flex-col overflow-hidden rounded-lg bg-primary px-6 md:flex-row md:px-10 lg:px-20 mt-5"
+            className="relative flex flex-col overflow-hidden rounded-lg bg-primary px-6 md:flex-row md:px-10 lg:px-20 "
         >
             {/* Left: text */}
             <div className="flex flex-col items-start justify-center gap-5 py-10 md:w-1/2 md:gap-6 md:py-[8vw] lg:py-[7vw]">

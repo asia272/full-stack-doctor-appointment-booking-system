@@ -39,7 +39,7 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
     const [isPending, startTransition] = useTransition();
 
     return (
-        <header className="w-full bg-white">
+        <header className="w-full bg-white mb-12">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <nav className="flex h-20 items-center justify-between border-b border-[#ADADAD]">
                     <Link href="/" aria-label="Home" className="shrink-0">

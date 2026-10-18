@@ -122,3 +122,31 @@ export const listRelatedDoctors = query({
         ).filter(isPresent);
     },
 });
+
+
+export const listPublicDoctors = query({
+    args: { specialty: v.optional(v.string()) },
+    handler: async (ctx, args) => {
+        const specialty = args.specialty?.trim();
+
+        const doctors = specialty
+            ? await ctx.db
+                .query("doctors")
+                .withIndex("by_specialty_and_active", (q) =>
+                    q.eq("specialty", specialty).eq("isActive", true),
+                )
+                .order("desc")
+                .take(100)
+            : await ctx.db
+                .query("doctors")
+                .withIndex("by_active", (q) => q.eq("isActive", true))
+                .order("desc")
+                .take(100);
+
+        return (
+            await Promise.all(
+                doctors.map((doctor) => toPublicDoctor(ctx, doctor)),
+            )
+        ).filter(isPresent);
+    },
+});
