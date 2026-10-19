@@ -6,6 +6,7 @@ import {
     getBookingDates,
     getClinicNow,
     getDoctorSlotTimes,
+    getUnavailableReason, // NEW
     getWeekdayLabel,
     isSlotBlockingStatus,
     isValidDateString,
@@ -63,7 +64,8 @@ export const getAvailableSlots = query({
                 .map((item) => item.appointmentTime),
         );
 
-        return getDoctorSlotTimes(doctor).map((time) => {
+        // CHANGED: pass args.date so days off (Sunday) return no slots.
+        return getDoctorSlotTimes(doctor, args.date).map((time) => {
             const isPast =
                 args.date === now.date && timeToMinutes(time) <= now.minutes;
 
@@ -127,7 +129,13 @@ export const createAppointment = internalMutation({
             throw new ConvexError("DATE_OUT_OF_RANGE");
         }
 
-        if (!getDoctorSlotTimes(doctor).includes(appointmentTime)) {
+        // NEW: block booking on the doctor's days off (Sunday by default).
+        if (getUnavailableReason(doctor, appointmentDate) !== null) {
+            throw new ConvexError("DOCTOR_OFF_DAY");
+        }
+
+        // CHANGED: pass appointmentDate as well.
+        if (!getDoctorSlotTimes(doctor, appointmentDate).includes(appointmentTime)) {
             throw new ConvexError("INVALID_SLOT");
         }
 

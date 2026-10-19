@@ -15,6 +15,7 @@ import type * as doctorProfile from "../doctorProfile.js";
 import type * as doctorsPublic from "../doctorsPublic.js";
 import type * as lib_appointmentDetails from "../lib/appointmentDetails.js";
 import type * as lib_booking from "../lib/booking.js";
+import type * as lib_workingDays from "../lib/workingDays.js";
 import type * as patients from "../patients.js";
 import type * as payments from "../payments.js";
 import type * as sessions from "../sessions.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   doctorsPublic: typeof doctorsPublic;
   "lib/appointmentDetails": typeof lib_appointmentDetails;
   "lib/booking": typeof lib_booking;
+  "lib/workingDays": typeof lib_workingDays;
   patients: typeof patients;
   payments: typeof payments;
   sessions: typeof sessions;

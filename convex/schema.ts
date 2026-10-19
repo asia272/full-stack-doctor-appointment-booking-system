@@ -76,16 +76,23 @@ export default defineSchema({
         // Length of one appointment slot in minutes.
         slotMinutes: v.optional(v.number()),
 
+        // NEW: weekdays the doctor works. 0=Sunday, 1=Monday ... 6=Saturday.
+        // If missing, default is Monday-Saturday (Sunday off).
+        workingDays: v.optional(v.array(v.number())),
+
+        // NEW: extra days off (holiday, leave) as "YYYY-MM-DD".
+        daysOff: v.optional(v.array(v.string())),
+
         // Inactive doctors should not accept new bookings.
         isActive: v.boolean(),
 
         createdAt: v.number(),
         updatedAt: v.number(),
+
     })
         .index("by_user", ["userId"])
         .index("by_active", ["isActive"])
         .index("by_specialty_and_active", ["specialty", "isActive"]),
-
     // --------------------------------------------------
     // APPOINTMENTS
     // CHANGED:

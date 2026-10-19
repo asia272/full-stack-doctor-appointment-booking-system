@@ -11,6 +11,9 @@ export const DEFAULT_WORK_DAY_START = "08:00";
 export const DEFAULT_WORK_DAY_END = "17:00";
 export const DEFAULT_SLOT_MINUTES = 30;
 
+// NEW: 0 = Sunday, 1 = Monday ... 6 = Saturday. Sunday is off by default.
+export const DEFAULT_WORKING_DAYS: number[] = [1, 2, 3, 4, 5, 6];
+
 /** Appointments in these statuses occupy a slot. */
 export const SLOT_BLOCKING_STATUSES = ["PENDING", "CONFIRMED"] as const;
 
@@ -21,6 +24,16 @@ export function isSlotBlockingStatus(status: string): boolean {
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
+// NEW: full names used in error messages.
+const WEEKDAY_NAMES = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+] as const;
 
 function pad(value: number): string {
     return String(value).padStart(2, "0");
@@ -106,14 +119,121 @@ export function formatSlotLabel(time: string): string {
     return `${hour12}.${pad(minutes)} ${suffix}`;
 }
 
+// --------------------------------------------------
+// NEW: WORKING DAYS / DAYS OFF
+// --------------------------------------------------
+
+/** NEW: weekday number of a "YYYY-MM-DD" date. 0 = Sunday ... 6 = Saturday. */
+export function getWeekdayIndex(date: string): number {
+    const [year, month, day] = parseDate(date);
+    return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+interface AvailabilityFields {
+    workingDays?: number[];
+    daysOff?: string[];
+}
+
+/** NEW: the doctor's working weekdays, falling back to Mon-Sat if missing or invalid. */
+function resolveWorkingDays(doctor: AvailabilityFields): number[] {
+    const days = doctor.workingDays;
+    const valid =
+        Array.isArray(days) &&
+        days.length > 0 &&
+        days.every((d) => Number.isInteger(d) && d >= 0 && d <= 6);
+    return valid ? (days as number[]) : DEFAULT_WORKING_DAYS;
+}
+
+/** NEW: returns null if the doctor works on this date, otherwise the reason. */
+export function getUnavailableReason(
+    doctor: AvailabilityFields,
+    date: string,
+): string | null {
+    if (!isValidDateString(date)) {
+        return "Invalid date.";
+    }
+
+    const weekday = getWeekdayIndex(date);
+
+    if (!resolveWorkingDays(doctor).includes(weekday)) {
+        return `The doctor is off on ${WEEKDAY_NAMES[weekday]}.`;
+    }
+
+    if (doctor.daysOff?.includes(date)) {
+        return "The doctor is on leave on this date.";
+    }
+
+    return null;
+}
+
+/** NEW: true if the doctor works on this date. */
+export function isDoctorWorking(
+    doctor: AvailabilityFields,
+    date: string,
+): boolean {
+    return getUnavailableReason(doctor, date) === null;
+}
+
+/** NEW: booking dates (same 7-day window) with the doctor's days off removed. */
+export function getBookableDates(
+    today: string,
+    doctor: AvailabilityFields,
+): string[] {
+    return getBookingDates(today).filter((date) =>
+        isDoctorWorking(doctor, date),
+    );
+}
+
+/** NEW: validates and cleans working days (unique, sorted, 0-6, at least 1). */
+export function normalizeWorkingDays(days: number[]): number[] {
+    const unique = Array.from(new Set(days));
+    if (unique.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
+        throw new Error("Working days must be numbers from 0 (Sun) to 6 (Sat).");
+    }
+    if (unique.length === 0) {
+        throw new Error("A doctor must work at least one day per week.");
+    }
+    return unique.sort((a, b) => a - b);
+}
+
+/** NEW: validates and cleans days off (unique, sorted, valid dates). */
+export function normalizeDaysOff(dates: string[]): string[] {
+    const unique = Array.from(new Set(dates));
+    if (unique.some((d) => !isValidDateString(d))) {
+        throw new Error("Days off must be valid dates in YYYY-MM-DD format.");
+    }
+    return unique.sort();
+}
+
+// --------------------------------------------------
+// SLOTS
+// --------------------------------------------------
+
+// CHANGED: added workingDays and daysOff (both optional).
 interface ScheduleFields {
     workDayStart?: string;
     workDayEnd?: string;
     slotMinutes?: number;
+    workingDays?: number[];
+    daysOff?: string[];
 }
 
-/** Returns every slot start time for a doctor, falling back to defaults. */
-export function getDoctorSlotTimes(doctor: ScheduleFields): string[] {
+/**
+ * Returns every slot start time for a doctor, falling back to defaults.
+ *
+ * CHANGED: optional second argument `date`.
+ * - Not passed: works exactly as before.
+ * - Passed: returns [] when the doctor is off on that date.
+ */
+export function getDoctorSlotTimes(
+    doctor: ScheduleFields,
+    date?: string,
+): string[] {
+    // NEW: no slots on days off.
+    if (date !== undefined && !isDoctorWorking(doctor, date)) {
+        return [];
+    }
+
     let start = doctor.workDayStart ?? DEFAULT_WORK_DAY_START;
     let end = doctor.workDayEnd ?? DEFAULT_WORK_DAY_END;
     let step = doctor.slotMinutes ?? DEFAULT_SLOT_MINUTES;
