@@ -133,12 +133,14 @@ export default async function MyProfilePage() {
                             </p>
                         </div>
 
-                        <Button className="shrink-0">
-                            <Link href="/my-profile/edit">
-                                <Pencil className="mr-2 size-4" />
-                                Update Profile
-                            </Link>
-                        </Button>
+
+                        <Link href="/my-profile/edit"
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[5px] bg-[#5F6FFF] px-8 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4c5ce8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5F6FFF]/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        >
+                            <Pencil className="mr-2 size-4" />
+                            Update Profile
+                        </Link>
+
                     </div>
 
                     <div className="my-8 border-t" />

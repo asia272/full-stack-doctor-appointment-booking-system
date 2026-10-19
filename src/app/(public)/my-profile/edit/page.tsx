@@ -38,7 +38,8 @@ export default async function EditProfilePage() {
         <main className="min-h-screen bg-background px-4 py-10 sm:px-6 lg:py-16">
             <div className="mx-auto max-w-3xl space-y-6">
                 <Button variant="ghost">
-                    <Link href="/my-profile">
+                    <Link href="/my-profile" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[5px] bg-[#5F6FFF] px-8 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4c5ce8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5F6FFF]/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    >
                         <ArrowLeft className="mr-2 size-4" />
                         Back to Profile
                     </Link>
