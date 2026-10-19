@@ -18,6 +18,8 @@ export type AppointmentView = {
     timeLabel: string;
     consultationFee: number;
     canCancel: boolean;
+    paymentMethod?: "CASH" | "ONLINE";
+    paymentStatus?: "UNPAID" | "PAID";
     patient: {
         fullName: string;
         imageUrl: string | null;

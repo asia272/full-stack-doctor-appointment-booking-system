@@ -15,6 +15,8 @@ export interface MyAppointment {
     consultationFee: number;
     reason: string | null;
     canCancel: boolean;
+    paymentMethod?: "CASH" | "ONLINE";
+    paymentStatus?: "UNPAID" | "PAID";
     /** null when the doctor record no longer exists. */
     doctor: {
         id: string;

@@ -7,6 +7,7 @@ import {
 import { getInitials } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { AppointmentStatus, MyAppointment } from "@/types/my-appointment";
+import PayNowButton from "@/features/appointments/components/PayNowButton";
 import { CancelAppointmentButton } from "./cancel-appointment-button";
 
 const STATUS_STYLES: Record<AppointmentStatus, { label: string; className: string }> = {
@@ -43,6 +44,12 @@ export function AppointmentCard({ appointment }: AppointmentCardProps) {
     const dateLabel = formatAppointmentDate(appointment.appointmentDate);
     const timeLabel = formatAppointmentTime(appointment.appointmentTime);
     const doctorName = doctor?.fullName ?? "Doctor unavailable";
+
+    const isPaid = appointment.paymentStatus === "PAID";
+    // Unpaid and still active (Pending or Confirmed): show the Pay online button.
+    const canPay = !isPaid && (status === "PENDING" || status === "CONFIRMED");
+
+    const hasRightColumn = isPaid || canPay || appointment.canCancel;
 
     return (
         <li className="flex flex-col gap-4 border-b border-gray-200 py-4 sm:flex-row sm:gap-6">
@@ -89,27 +96,41 @@ export function AppointmentCard({ appointment }: AppointmentCardProps) {
                     <span className="font-medium text-gray-700">Date &amp; Time:</span>{" "}
                     {dateLabel} | {timeLabel}
                 </p>
+
+                {/* Appointment status (left) */}
+                <div className="mt-3">
+                    <p className="font-medium text-gray-700">Appointment status:</p>
+                    <Badge
+                        className={cn(
+                            "mt-1 h-10 rounded-sm px-4 text-sm font-normal",
+                            statusStyle.className,
+                        )}
+                    >
+                        {statusStyle.label}
+                    </Badge>
+                </div>
             </div>
 
-            {/* Status + actions */}
-            <div className="flex flex-col justify-end gap-2 sm:w-48">
-                <Badge
-                    className={cn(
-                        "w-full justify-center rounded-sm py-2.5 text-sm font-normal",
-                        statusStyle.className,
+            {/* Payment + actions (right) */}
+            {hasRightColumn && (
+                <div className="flex flex-col justify-end gap-2 sm:w-48">
+                    {isPaid && (
+                        <Badge className="h-10 w-full justify-center rounded-sm bg-green-100 px-4 text-sm font-normal text-green-800 hover:bg-green-100">
+                            Paid
+                        </Badge>
                     )}
-                >
-                    {statusStyle.label}
-                </Badge>
 
-                {appointment.canCancel && (
-                    <CancelAppointmentButton
-                        appointmentId={appointment.id}
-                        doctorName={doctorName}
-                        whenLabel={`${dateLabel} at ${timeLabel}`}
-                    />
-                )}
-            </div>
+                    {canPay && <PayNowButton appointmentId={appointment.id} />}
+
+                    {appointment.canCancel && (
+                        <CancelAppointmentButton
+                            appointmentId={appointment.id}
+                            doctorName={doctorName}
+                            whenLabel={`${dateLabel} at ${timeLabel}`}
+                        />
+                    )}
+                </div>
+            )}
         </li>
     );
 }

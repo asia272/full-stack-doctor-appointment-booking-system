@@ -113,6 +113,17 @@ export default defineSchema({
         // Optional note from the doctor or administrator.
         notes: v.optional(v.string()),
 
+        // Payment. Missing values mean "CASH / UNPAID" (old appointments).
+        paymentMethod: v.optional(
+            v.union(v.literal("CASH"), v.literal("ONLINE")),
+        ),
+        paymentStatus: v.optional(
+            v.union(v.literal("UNPAID"), v.literal("PAID")),
+        ),
+        stripeCheckoutSessionId: v.optional(v.string()),
+        stripePaymentIntentId: v.optional(v.string()),
+        paidAt: v.optional(v.number()),
+
         createdAt: v.number(),
         updatedAt: v.number(),
     })

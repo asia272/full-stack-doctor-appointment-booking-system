@@ -39,8 +39,17 @@ export const getDoctorDashboardData = internalQuery({
                 .take(5),
         ]);
 
+        // Counted once per appointment:
+        // - COMPLETED visits (cash or online), or
+        // - paid online and still active (PENDING / CONFIRMED).
+        // CANCELLED and REJECTED never count, because paid ones need a refund.
         const earnings = all
-            .filter((a) => a.status === "COMPLETED")
+            .filter(
+                (a) =>
+                    a.status === "COMPLETED" ||
+                    (a.paymentStatus === "PAID" &&
+                        (a.status === "PENDING" || a.status === "CONFIRMED")),
+            )
             .reduce((sum, a) => sum + a.consultationFee, 0);
 
         const patients = new Set(all.map((a) => a.patientId as string)).size;
@@ -104,9 +113,21 @@ export const updateAppointmentStatusByDoctor = internalMutation({
             throw new ConvexError("INVALID_TRANSITION");
         }
 
+        const now = Date.now();
+
         await ctx.db.patch(args.appointmentId, {
             status: args.status,
-            updatedAt: Date.now(),
+            updatedAt: now,
+            // A cash visit is paid when the doctor completes it.
+            // Online payments are already PAID by the Stripe webhook.
+            ...(args.status === "COMPLETED" &&
+                appointment.paymentStatus !== "PAID"
+                ? {
+                    paymentMethod: "CASH" as const,
+                    paymentStatus: "PAID" as const,
+                    paidAt: now,
+                }
+                : {}),
         });
 
         return { appointmentId: args.appointmentId as string };

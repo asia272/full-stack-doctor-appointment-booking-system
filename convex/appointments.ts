@@ -258,6 +258,8 @@ export const listMyAppointments = internalQuery({
                     consultationFee: row.consultationFee,
                     reason: row.reason ?? null,
                     canCancel: isUpcoming,
+                    paymentMethod: row.paymentMethod ?? ("CASH" as const),
+                    paymentStatus: row.paymentStatus ?? ("UNPAID" as const),
                     doctor: await loadDoctor(row.doctorId),
                 };
             }),

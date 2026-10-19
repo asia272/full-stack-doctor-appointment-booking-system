@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import Avatar from "@/components/dashboard/Avatar";
+import PaymentBadge from "@/components/dashboard/PaymentBadge";
 import { formatDateTime, formatMoney } from "@/lib/format-appointment";
 import type { AppointmentView } from "@/types/appointment";
 
@@ -34,6 +35,7 @@ export default function AppointmentsTable({
                         <th className={th}>Date &amp; Time</th>
                         {isAdmin && <th className={th}>Doctor</th>}
                         <th className={th}>Fees</th>
+                        <th className={th}>Payment</th>
                         <th className={th}>Action</th>
                     </tr>
                 </thead>
@@ -42,7 +44,7 @@ export default function AppointmentsTable({
                     {appointments.length === 0 ? (
                         <tr>
                             <td
-                                colSpan={isAdmin ? 8 : 6}
+                                colSpan={isAdmin ? 9 : 7}
                                 className="px-4 py-12 text-center text-[#6B7280]"
                             >
                                 {emptyText}
@@ -50,7 +52,10 @@ export default function AppointmentsTable({
                         </tr>
                     ) : (
                         appointments.map((a, index) => (
-                            <tr key={a.id} className="border-b last:border-b-0 border-[#E1E1E1]">
+                            <tr
+                                key={a.id}
+                                className="border-b border-[#E1E1E1] last:border-b-0"
+                            >
                                 <td className={td}>{index + 1}</td>
 
                                 <td className={td}>
@@ -91,6 +96,13 @@ export default function AppointmentsTable({
 
                                 <td className={td}>
                                     {formatMoney(a.consultationFee)}
+                                </td>
+
+                                <td className={td}>
+                                    <PaymentBadge
+                                        method={a.paymentMethod}
+                                        status={a.paymentStatus}
+                                    />
                                 </td>
 
                                 <td className={td}>

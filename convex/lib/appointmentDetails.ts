@@ -103,6 +103,8 @@ export async function withAppointmentDetails(
             timeLabel: formatSlotLabel(row.appointmentTime),
             consultationFee: row.consultationFee,
             canCancel: isSlotBlockingStatus(row.status),
+            paymentMethod: row.paymentMethod ?? ("CASH" as const),
+            paymentStatus: row.paymentStatus ?? ("UNPAID" as const),
             patient: await loadPatient(row.patientId),
             doctor: await loadDoctor(row.doctorId),
         })),
