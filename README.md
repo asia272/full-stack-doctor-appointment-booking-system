@@ -4,7 +4,7 @@
 
 **A full-stack platform where patients discover doctors, book real time slots, and pay online — with separate dashboards for admins and doctors.**
 
-[**Live Demo**](https://full-stack-doctor-appointment-booki.vercel.app/) · [**Source Code**](https://github.com/asia272/full-stack-doctor-appointment-booking-system)
+[**Live Demo**](https://full-stack-doctor-appointment-booki.vercel.app/) · [**Source Code**](https://github.com/asia272/full-stack-doctor-appointment-booking-system) · [**Figma Design**](https://www.figma.com/design/ZLkjwG5ehxNRrC4SUA2WG7/Prescripto---UI-Design?t=vSXeY6KLW2QA3AQO-0)
 
 ![Next.js](https://img.shields.io/badge/Next.js-App_Router-000000?logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript&logoColor=white)
@@ -22,6 +22,8 @@
 ---
 
 ## ✨ Features
+
+nextjs react typescript convex tailwindcss shadcn-ui stripe brevo doctor-appointment-booking appointment-booking full-stack vercel
 
 ### 👤 Patients
 
