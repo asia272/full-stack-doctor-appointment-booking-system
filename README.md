@@ -13,6 +13,10 @@
 ![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?logo=stripe&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?logo=vercel&logoColor=white)
 
+<br />
+
+<img src="./public/preview.png" alt="Doctor Appointment Booking System preview" width="100%" />
+
 </div>
 
 ---
