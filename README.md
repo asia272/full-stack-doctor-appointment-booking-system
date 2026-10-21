@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🩺 Doctor Appointment Booking System
+# 🩺 FullStack Doctor Appointment Booking System
 
 **A full-stack platform where patients discover doctors, book real time slots, and pay online — with separate dashboards for admins and doctors.**
 
