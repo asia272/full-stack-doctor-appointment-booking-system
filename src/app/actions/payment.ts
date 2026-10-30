@@ -46,8 +46,8 @@ export async function createCheckoutSessionAction(
             };
         }
 
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-        if (!appUrl) throw new Error("NEXT_PUBLIC_APP_URL is not set.");
+        const appUrl = process.env.APP_URL;
+        if (!appUrl) throw new Error("APP_URL is not set.");
 
         const session = await getStripe().checkout.sessions.create({
             mode: "payment",
