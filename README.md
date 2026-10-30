@@ -121,7 +121,7 @@ NEXT_PUBLIC_CONVEX_URL=https://<your-deployment>.convex.cloud
 NEXT_PUBLIC_CONVEX_SITE_URL=https://<your-deployment>.convex.site
 
 # App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+APP_URL=http://localhost:3000
 OTP_HASH_SECRET=<random-string-of-32+-characters>
 
 # Admin (single administrator, signs in with password + emailed code)
@@ -172,7 +172,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 1. Deploy the backend to production: `npx convex deploy`
 2. Import the repo into [Vercel](https://vercel.com/) and add every variable from `.env.local`, using **production** Convex and Stripe values
-3. Set `NEXT_PUBLIC_APP_URL` to your live domain
+3. Set `APP_URL` to your live domain
 4. In the Stripe dashboard, add a webhook endpoint at `https://<your-domain>/api/stripe/webhook` and copy its signing secret into `STRIPE_WEBHOOK_SECRET`
 
 > ⚠️ Never commit `.env.local`. Keep it listed in `.gitignore`, and rotate any key that has been shared publicly.
